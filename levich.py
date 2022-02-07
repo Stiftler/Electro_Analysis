@@ -17,12 +17,50 @@ class Levich_Analysis :
 
 
     def __init__(self) :
+        """ initiate Levich_Analysis class with the following attributes
+            - self.save_figures
+                (boolean: contains the state if User wants to save the created figures automatically
+                default state: False)
+            - self.start_evaluation
+                (boolean: safety switch if not all required parameters are known, the evaluation can not be started)
+            - self.file_paths 
+                (tuple: contains the file_paths of the raw data files selected by the User)
+            - self.sample_names
+                (list: contains all sample_names of the selected files)
+            - self.program_frame (tkinter.Frame)
+                is an object required in the GUI interface
+                the interface, which is created in a later function (self.get_gui_frame)
+            - self.active_rpm_frames, self.active_evaluation_frames and self.active_results_frames
+                (list: contains all active frames created during the execution of this program)
+            - self.rpm_labels and self.rpm_entries
+                (list: contains the tkinter.Label´s and tkinter.Entry´s created in the sample_rpm_frame (see function self.open_files)
+                these tkinter.Label´s and tkinter.Entry´s list the current set RPM values and gives User the possibility to change those)
+            - self.change_rpm_button
+                (tkinter.Button: has the function to change the set rpm values for each sample. It is set as an attribute of the Levich_Analysis class object so
+                that it can be removed during the evaluation process (if not User could change rpm values during the evaluation and that would kill the 
+                running evaluation process))
+            - self.rpm_values
+                (dict: contains the set rpm values for each sample as value and the sample_name as the key)
+            - self.results_levich and self.results_koutecky
+                (pandas.DataFrame: contains all evaluated data from the levich and levicht-koutecky fit)
+            - self.data_levich and self.data_koutecky
+                (pandas.DataFrame: contains the data set of each selected potential for the levich and levich-koutecky fit)
+        """
 
+
+        """ set up basic attributes and paramteters necessary for the class and evalution 
+        """
         self.program_name = "Levich Analysis"
 
         self.reset_attributes()
 
         self.change_rpm_button = None
+
+        """ create evaluation folder to save evaluated data and figures (if this folder does not exist already)
+            created folder is at */Levich Analysis/**
+             * path of this program
+             ** current date in format YYYY-MM-DD
+        """
 
         path_this_programm = os.path.dirname(os.path.realpath(__file__))
 
@@ -45,37 +83,38 @@ class Levich_Analysis :
 
 
     def reset_attributes(self) :
+        """ resets all attributes for the Levich_Analysis class object or required for opening new files
+            this function is exectued once during the initiation of the Levich_Analysis class object to set
+            those attributes of the object
+        """
 
         self.save_figures = False
-        
-        self.file_paths = ()
-
-        self.program_frame = None
-
-        self.rpm_labels, self.rpm_entries = [], []
-
-        self.rpm_values = {}
-
-        self.sample_names = []
-
         self.start_evaluation = False  
 
-        self.results_levich = pd.DataFrame(index = ["levich_slope", "levich_intersect"])
+        self.file_paths = ()
+        self.sample_names = [] 
 
-        self.results_koutecky = pd.DataFrame(index = ["koutecky_slope", "koutecky_intersect", "on_set_current"])     
-
+        self.program_frame = None        
         self.active_rpm_frames = [] 
-
         self.active_evaluation_frames = []
-
         self.active_results_frames = []
+        
+        self.rpm_labels, self.rpm_entries = [], []
+        self.rpm_values = {}   
 
         self.data_levich = pd.DataFrame()
-
         self.data_koutecky = pd.DataFrame()
+
+        self.results_levich = pd.DataFrame(index = ["levich_slope", "levich_intersect"])
+        self.results_koutecky = pd.DataFrame(index = ["koutecky_slope", "koutecky_intersect", "on_set_current"]) 
 
 
     def save_levich_results(self) :
+        """ saves the self.data_levich DataFrame if User desires to save the evaluated data
+            is deployed on tkinter.Button event (save_levich_button (see function get_evaluation frame in self.run_evaluation))
+            it loops through all files in the evaluation folder and counts the existing Levich_Results files
+            the new file is saved with the count at the end of the file_name
+        """
         files_in_directory = os.listdir(self.path_evaluation_folder)
 
         count = 0
@@ -88,6 +127,11 @@ class Levich_Analysis :
 
 
     def save_koutecky_results(self) :
+        """ saves the self.data_koutecky DataFrame if User desires to save the evaluated data
+            is deployed on tkinter.Button event (save_koutecky_button (see function get_evaluation frame in self.run_evaluation))
+            it loops through all files in the evaluation folder and counts the existing Koutecky_Results files
+            the new file is saved with the count at the end of the file_name
+        """
         files_in_directory = os.listdir(self.path_evaluation_folder)
 
         count = 0
@@ -100,8 +144,17 @@ class Levich_Analysis :
 
 
     def run_evaluation(self) :
+        """ does the acutal evaluation of the selected data
+            does only trigger if the self.start_evaluation state is True
+            the state switches to True if the following conditions are met:
+            - raw data files have been selected in the first place
+            - every selected sample has a rpm value assigned
+        """
         
         if self.start_evaluation :
+            """ remove self.change_rpm_button from grid (if the User pushes the Button during the evaluation process, the evalution process is killed)
+                remove all active evaluation_frames from grid (new data does not interfere with old data in GUI)
+            """
 
             self.change_rpm_button.grid_forget()
 
@@ -111,7 +164,17 @@ class Levich_Analysis :
                 evalution_frame.grid_forget()
 
             def get_results_frame() :
-                
+                """ after the execution of a levich or koutecky-levich fit a results_frame is generated, which contains all determined results from those fits
+                    the results are listed in a table with the following format:
+                    - rows: list of the potential selected by User for fit 
+                        (each potential is represented once. the potentials_already_listed dict contains the row as value and the set potential as key
+                        the dict keeps track if a potential was added prior 
+                        the order is that at first the levich results are added and the koutecky afterwards)
+                    - columns: results at that potential 
+
+                    at first all active results_frame in the self.active_results_frames list are removed from the grid
+                    afterwards a new results_frame is generated with the new available data and added to self.active_results_frames
+                """
                 for results_frame in self.active_results_frames :
                     results_frame.grid_forget()
 
@@ -153,16 +216,28 @@ class Levich_Analysis :
 
 
             def levich_onselect(xmin, xmax) :   
-                
+                """ function exectued if the User selects a horizontal range in ax[0,0] or sets a value in GUI
+                    deployes a levich-fit at xmin
+                    xmax is not required for a levich-fit but since this function can be accessed by a SpanSelector (spanner levich) a hihger range 
+                    is necassary
+                    xmax has no further influence on the evalutation
+                """
+
+                """ loop through all dataset and get the first current and square root rotation rate of each sample, which is >= xmin
+                    add those values to corresponding lists
+                """
                 currents, sqrt_rotation_rates = [], []
-
                 for data in datas.values() :
-
                     data = data[data["potential"] >= xmin]
 
                     currents.append(data["current"].tolist()[0])
                     sqrt_rotation_rates.append(data["sqrt_rotation_rate"].tolist()[0])    
 
+                """ add isolated currents and square root rotation rate of each sample to a pandas.DataFrame
+                    fit those data linearly and isolate the 
+                    - levich slope
+                    - levich intersect
+                """
                 data_levich = pd.DataFrame()
                 data_levich["current"] = currents
                 data_levich["sqrt_rotation_rate"] = sqrt_rotation_rates
@@ -171,7 +246,9 @@ class Levich_Analysis :
 
                 levich_slope, levich_intersect = levich_fit[0], levich_fit[1]
 
-                """ create the eqation of the fit """
+                """ create the Levich fit equation for the plot label 
+                    calculate data for the fit to represent it in the plot
+                """
                 if levich_intersect > 0 :
                     levich_label = f"{round(xmin, 3)} V  j = {round(levich_slope * 1000, 3)}" + " $ω^{0.5}$ + " + f"{round(levich_intersect * 1000, 3)}"
                 elif levich_intersect < 0 :
@@ -180,6 +257,10 @@ class Levich_Analysis :
                     levich_label = f"{round(xmin, 3)} V  j = {round(levich_slope * 1000, 3)}" + " $ω^{0.5}$"
 
                 data_levich["levich_fit"] = levich_slope * data_levich["sqrt_rotation_rate"] + levich_intersect
+
+                """ add isolated data and data fit to ax[0,1]
+                    add data to self.data_levich DataFrame for saving later
+                """
 
                 ax[0,1].scatter(data_levich["sqrt_rotation_rate"], data_levich["current"] * 1000, label = levich_label, marker = "x")
                 ax[0,1].plot(data_levich["sqrt_rotation_rate"],data_levich["levich_fit"] * 1000, ls = "--")
@@ -193,20 +274,36 @@ class Levich_Analysis :
                 self.data_levich[f"Levich Slope (A/(rad/s)^0.5) @ {round(xmin, 3)} V"] = [levich_slope] + [np.nan] * (len(data_levich) - 1)
                 self.data_levich[f"Levich Intersect (A) V"] = [levich_intersect] + [np.nan] * (len(data_levich) - 1)
 
+                """ display results obtained Levich fit in GUI
+                """
                 get_results_frame()
 
 
             def koutecky_levich_onselect(xmin, xmax) :
-                
+                """ function exectued if the User selects a horizontal range in ax[1,0] or sets a value in GUI
+                    deployes a koutecky-levich-fit at xmin
+                    xmax is not required for a levich-fit but since this function can be accessed by a SpanSelector (spanner_koutecky_levich) a hihger range 
+                    is necassary
+                    xmax has no further influence on the evalutation
+                """     
+
+                """ loop through all datasets and get the first reciprocal current and reciprocal square root roation rate of each sample, which is >= xmin
+                    add those values to corresponding lists
+                """           
                 reci_currents, reci_sqrt_rotation_rates = [], []
-
                 for data in datas.values() :
-
                     data = data[data["potential"] >= xmin]
 
                     reci_currents.append(data["reci_current"].tolist()[0])
                     reci_sqrt_rotation_rates.append(data["reci_sqrt_rotation_rate"].tolist()[0])
+                
+                """ add isolated reciprocal currents and reciprocal sqaure root rotation rates of each sample to a pandas.DataFrame
+                    fit those data linearly and isolate the
+                    - koutecky-levich slope
+                    - koutecky-levich intersect
 
+                    determine the on set current by the reciprocal kotekcy-levich intersect
+                """
                 data_koutecky = pd.DataFrame()
                 data_koutecky["reci_current"] = reci_currents
                 data_koutecky["reci_sqrt_rotation_rate"] = reci_sqrt_rotation_rates
@@ -217,6 +314,9 @@ class Levich_Analysis :
 
                 on_set_current = 1 / koutecky_intersect
 
+                """ create the koutecky-levich-fit equation for the plot label
+                    calculate data for the fit to represent it in the plot
+                """
                 if koutecky_intersect > 0 :
                     koutecky_label = f"{round(xmin, 3)} V " + "$j^{-1}$ " + f"= {round(koutecky_slope)} " + "$ω^{-0.5}$ + " + f"{round(koutecky_intersect, 3)}" 
                 elif koutecky_intersect < 0 :
@@ -226,6 +326,9 @@ class Levich_Analysis :
 
                 data_koutecky["koutecky_fit"] = koutecky_slope * data_koutecky["reci_sqrt_rotation_rate"] + koutecky_intersect
 
+                """ add isolated data and data fit to ax[1,0]
+                    add data to self.data_koutecky DataFrame for saving later
+                """
                 ax[1,1].scatter(data_koutecky["reci_sqrt_rotation_rate"], data_koutecky["reci_current"], marker = "x", s = 10, label = koutecky_label)
                 ax[1,1].plot(data_koutecky["reci_sqrt_rotation_rate"], data_koutecky["koutecky_fit"], ls = "--")
                 ax[1,1].legend(fontsize = 8, loc = "upper left")
@@ -238,10 +341,44 @@ class Levich_Analysis :
                 self.data_koutecky[f"Koutecky Intersect (A^-1) @ {round(xmin, 3)} V"] = [koutecky_intersect]+ [np.nan] * (len(self.data_koutecky) - 1)
                 self.data_koutecky[f"On Set Current (mA) @ {round(xmin, 3)} V"] = [round((on_set_current * 1000), 3)] + [np.nan] * (len(self.data_koutecky) - 1)
                 
+                """ display results obtained by Koutecky-Levich fit in GUI
+                """
                 get_results_frame()
 
 
             def get_evaluation_frame() :
+                """ when the evaluation is exectuted a tkinter.Frame is created in the self.program_frame, which acts as a control panel for the evaluation
+                    it contains two further tkinter.Frame´s, which represent the
+                    - levich fit control panel (upper frame)
+                    - koutecky-levich fit control (lower frame)
+
+                    one of those control panels contains
+                    - tkinter.Label 
+                        for labeling each frame for the User, which is represented by which
+                    - tkinter.Entry´s 
+                        for entering potentials for the fits
+                        multiple entries at once are possible by seperating the entries with ;
+                        decimals can be entered either by . or , 
+                    - tkinter.Button´s 
+                        for executing the following functions:
+                            - get_levich_potential: 
+                                gets the entered potentials by User in the entry field for the levich fit
+                                exectutes the function levich_onselect directly afterwards
+                                if an entry fails, this position is skipped and an Error Feedback is displayed informing the User
+                                the remaining valid position are still executed
+                                multiple positions can be entered by seperation with ;
+                            - get_koutecky_potential: 
+                                gets the entered potentials by User in the entry field for the koutecky-levich fit
+                                executes the function koutecky_levich_onselect directly afterward
+                                if an entry fails, this position is skipped and an Error Feedback is displayed informing the User
+                                the remaining valid positions are still executed
+                                multiple positions can be entered by seperation with ;
+                            - clear_levich_plot and clear_koutecky_plot:
+                                clears levich plot ax[0,1] and koutecky plot ax[1,1] (removes existing fits and title)
+                                clears the self.results_levich and self.results_koutecky DataFrame´s
+                            - self.save_levich_results and self.save_koutecky_results:
+                                saves the existing version of the self.results_levich and self.results_koutecky DataFrame´s to txt file
+                """
                 evalution_frame = tk.Frame(master = self.program_frame, relief = "groove", borderwidth = 2)
                 evalution_frame.grid(row = 0, column = 1, padx = 5, pady = 5)
 
@@ -264,10 +401,12 @@ class Levich_Analysis :
                 koutecky_entry.grid(row = 0, column = 1, padx = 5, pady = 5)
 
                 def get_levich_potential() :
+                    """ gets the set potentials for the levich fit and executes the function levich_onselect for each entry afterwards
+                        invalid entry´s are skipped and an Error Feedback is displayed
+                        multiple entries can be entered by seperation with ;
+                    """
                     entries = levich_entry.get()
-
                     entries = entries.replace(",", ".")
-
                     entries = entries.split(";")
 
                     for entry in entries :
@@ -276,9 +415,13 @@ class Levich_Analysis :
                         except ValueError :
                             self.feedback_label.config(text = f"Failed to convert {entry} to a valid input.")
                             continue
-                        levich_onselect(entry, 2) # 2 is for xmax and arbitrarily chosen
+                        levich_onselect(entry, 2) # 2 is for xmax (is arbitrarily chosen)
 
                 def get_koutecky_potential() :
+                    """ gets the set potentials for the koutecky-levich fit and executes the function koutecky_levich_onselect for each entry afterwards
+                        invalid entry´s are skipped and an Error Feedback is displayed
+                        multiple entries can be entered by seperation with ;
+                    """
                     entries = koutecky_entry.get()
 
                     entries = entries.replace(",", ".")
@@ -291,7 +434,7 @@ class Levich_Analysis :
                         except ValueError :
                             self.feedback_label.config(text = f"Failed to convert {entry} to a valid input.")
                             continue
-                        koutecky_levich_onselect(entry, 2) # 2 is for xmax and arbitrarily chosen
+                        koutecky_levich_onselect(entry, 2) # 2 is for xmax (is arbitrarily chosen)
 
                 potential_levich_button = tk.Button(master = levich_frame, text = "Set Potential", command = get_levich_potential)
                 potential_levich_button.grid(row = 0, column = 2, padx = 5, pady = 5)
@@ -300,6 +443,9 @@ class Levich_Analysis :
                 potential_koutecky_button.grid(row = 0, column = 2, padx = 5, pady = 5)
 
                 def clear_levich_plot() :
+                    """ clears the levich plot ax[0,1] (removes existing fits and title)
+                        clears the self.result_levich DataFrame
+                    """
                     ax[0,1].clear()
                     ax[0,1].set_xlabel("$ω^{0.5}$ (rad/s$)^{0.5}$")
                     ax[0,1].set_ylabel("Current (mA)")
@@ -307,6 +453,9 @@ class Levich_Analysis :
                     self.results_levich = pd.DataFrame(index = ["levich_slope", "levich_intersect"])
 
                 def clear_koutecky_plot() :
+                    """ clears the koutecky-levich plot ax[1,1] (removes existing fits and title)
+                        clears the self.result_levich DataFrame
+                    """
                     ax[1,1].clear()
                     ax[1,1].set_xlabel("$ω^{-0.5}$ (rad/s$)^{-0.5}$")
                     ax[1,1].set_ylabel("Reciprocal Current (A$)^{-1}$")
@@ -325,28 +474,50 @@ class Levich_Analysis :
                 save_koutecky_button = tk.Button(master = koutecky_frame, text = "Save Koutecky Results", command = self.save_koutecky_results)
                 save_koutecky_button.grid(row = 0, column = 4, padx = 5, pady = 5)
 
+                """ get an results_frame for the evalution_frame
+                    append the evalution_frame to the self.active_evaluation_frames list """
                 get_results_frame()
 
                 self.active_evaluation_frames.append(evalution_frame)
 
-
+            """ create a frame, which acts as a control panel for the evaluation 
+            """
             get_evaluation_frame()
 
-            datas = {}
+            """ create a datas dic with the data of each sample as value and the sample name as key
 
+                create the figure for the evaluation wíth two rows and two columns
+                - ax[0,0] (upper left) and ax[1,0] (lower left) display the same current vs potential 
+                - ax[1,0] (upper right) display the levich fit data currents vs square root rotation rates
+                - ax[1,1] (lower right) display the koutecky fit dada reciprocal currents vs reciprocal square root rotation rates
+            """
+            datas = {}
             fig, ax = plt.subplots(2,2)
 
+            """ loop through each dataset individually
+            """
             for n, file_path in enumerate(self.file_paths) :
+                """ get the sample_name and rpm value of each sample
+                 """
                 sample_name = self.sample_names[n]
                 rpm = self.rpm_values[sample_name]
 
-                """ acutal evalution """
+                """ open raw data set and rename columns
+                """
                 data = pd.read_csv(file_path, delimiter = ";")
                 data.rename(columns = {"WE(1).Potential (V)":"potential", "WE(1).Current (A)" :"current"}, inplace = True)
 
+                """ plot current (in mA) vs potential (V) in ax[0,0] and ax[1,0]
+                """
                 ax[0,0].plot(data["potential"], data["current"] * 1000, label = sample_name)
                 ax[1,0].plot(data["potential"], data["current"] * 1000)
 
+                """ calculate rotation rate from rpm by the fomular: 
+                    rotation_rate = 2 * pi / (60 * rpm) 
+                    calculate square root of the rotation rate
+
+                    calculate reciprocal current and reciprocal square root rotation rate
+                """
                 rotation_rate = (2 * np.pi) / 60 * rpm
                 data["rotation_rate"] = [rotation_rate] * len(data)
                 data["sqrt_rotation_rate"] = np.sqrt(data["rotation_rate"])
@@ -354,6 +525,11 @@ class Levich_Analysis :
                 data["reci_current"] = 1 / data["current"]
                 data["reci_sqrt_rotation_rate"] = 1 / data["sqrt_rotation_rate"]
 
+                """ create a new DataFrame containing the processed data
+                    save data_save as a txt file
+
+                    append data to datas dictionary as value and use the sample_name as key
+                """
                 data_save = pd.DataFrame()
                 data_save["Potential (V)"] = data["potential"]
                 data_save["Current (A)"] = data["current"]
@@ -365,6 +541,8 @@ class Levich_Analysis :
 
                 datas[sample_name] = data
 
+            """ add title, legend, x and y axis label to axis in figure
+            """
             ax[0,0].legend(loc = "upper left", fontsize = 8)
 
             ax[0,1].set_title("Please select range in the left plot. \nThe lower range limit represents the potential of Levich fit.")
@@ -382,15 +560,32 @@ class Levich_Analysis :
             ax[1,1].set_xlabel("$ω^{-0.5}$ (rad/s$)^{-0.5}$")
             ax[1,1].set_ylabel("Reciprocal Current (A$)^{-1}$")
 
+            """ create SpanSelector´s in ax[0,0] and ax[1,0] for levich-fit in ax[0,1] and koutecky-levich fit in ax[1,1]
+                both SpanSelector´s accept an horizontal range selection by User and uses the lower range for the fits (the upper range is discarded)
+                keyword useblit: no clue what it does but it works
+                    in the official documentation the following is stated:
+                    'If True, use the backend-dependent blitting features for faster canvas updates.' 
+                    (https://matplotlib.org/stable/api/widgets_api.html#matplotlib.widgets.SpanSelector, 01.02.22)
+                    don´t know what to do with that information
+
+                show figure to User for evaluation and range selection
+            """
+
             spanner_levich = SpanSelector(ax[0,0], levich_onselect, "horizontal", useblit = True)
             spanner_koutecky_levich = SpanSelector(ax[1,0], koutecky_levich_onselect, "horizontal", useblit = True)
 
             plt.show()
 
+            """ evaluation finished
+                set self.change_rpm_button back on grid
+            """
             self.change_rpm_button.grid(row =0, column = 2, padx = 5, pady = 5)
 
             if self.save_figures :
-
+                """ save figure automatically if state True
+                    counts all files in the evaluation folder with an .jpg ending
+                    adds the count at the end of the file_name
+                """
                 files_in_directory = os.listdir(self.path_evaluation_folder)
 
                 count = 0
@@ -408,9 +603,22 @@ class Levich_Analysis :
 
 
     def change_rpm_values(self) :
+        """ gets entered rpm values in tkinter.Entry´s in sample_rpm_frame
+            sets at start of execution the safty switch self.start_evaluation to False
+
+            loops through all tkinter.Entry´s in self.rpm_entries and count successful conversion/entering
+            if count equal to number of repetions the safty switch self.start_evaluation to True
+            otherwise an Error Feedback is given back
+
+            valid inputs are int/float
+            decimals can be entered by . or ,
+            the respective labels displaying the current set rpm value for each sample are updated after a successful conversion
+
+            count is started at -1 since enumerate start at 0 
+        """
         
         self.start_evaluation = False
-        check = -1
+        count = -1
         for n, rpm_entry in enumerate(self.rpm_entries) :
             entry = rpm_entry.get()
 
@@ -420,29 +628,51 @@ class Levich_Analysis :
                 try :
                     entry = float(entry)
                     self.rpm_values[self.sample_names[n]] = entry
-                    check += 1
+                    count += 1
                 except ValueError :
                     self.feedback_label.config(text = f"Please enter a valid input for {self.sample_names[n]}.")
                     continue
 
                 self.rpm_labels[n].config(text = f"{entry}")
             else :
-                check += 1
+                count += 1
                 continue
 
-        if n == check :
+        if n == count :
             self.feedback_label.config(text = "Evaluation can be started.")
             self.start_evaluation = True
 
 
     def open_files(self) :
+        """ gets selected files by User and add those to self.file_paths
 
+        """
         
         root = tk.Tk()
-        self.file_paths = filedialog.askopenfilenames(parent = root)
+        file_paths = filedialog.askopenfilenames(parent = root)
         root.destroy()
 
-        if len(self.file_paths) > 0 :
+        if len(file_paths) > 0 :
+            """ close all active frames in the lists if new were selected:
+            - self.active_rpm_frames
+            - self.active_evaluation_frames
+            - self.active_resutls_frame
+
+            set state of safty switch self.start_evaluation to False
+
+            clear the existing list self.sample_names
+
+            create a new tkinter.Frame containing:
+            - tkinter.Label´s:
+                representing the selected samples and currently set rpm values
+            - tkinter.Entry´s:
+                for entering new rpm value by User for each respective sample 
+            - tkinter.Button:
+                to get the enterd rpm values by the User
+
+            clear existing lists self.rpm_labels and self.rpm_entries
+            """
+            self.start_evaluation = False
             
             self.sample_names = []
             
@@ -469,8 +699,13 @@ class Levich_Analysis :
 
             self.rpm_labels, self.rpm_entries = [], []
 
-            check = 0
-            for n, file_path in enumerate(self.file_paths) :
+            """ loop through each file_path and count all failed automatic rpm recognitions
+            """
+            count = 0
+            for n, file_path in enumerate(file_paths) :
+                """ get the sample_name and append it to the list self.sample_names
+                    create a tkinter.Label with the content of sample_name as text
+                """
                 file_name = os.path.basename(file_path)
                 sample_name = file_name.split(".txt")[0]
 
@@ -478,7 +713,23 @@ class Levich_Analysis :
 
                 sample_label = tk.Label(master = sample_rpm_frame, text = f"{sample_name}")
                 sample_label.grid(row = n + 1, column = 0, padx = 5, pady = 5)
+                """ try to find a rpm value at the end the sample_name
+                    in order for the automatic rpm value recognintion to work the following format for the file_name has to be chosen:
+                    *_100RPM.txt or *_100rpm.txt
+                     * name of the sample
 
+                    the recognition works by splitting the sample_name at each '_' and using the last fragment/element
+                    searching for 'rpm' or 'RPM' in the fragment and splitting it
+                    it uses the first fragment and tries to convert it into an int
+                    if that mechanism fails an Error Feedback is given back
+
+                    let´s use an example: 
+                     sample_name = "example_file_100RPM"
+                     after the first split: rpm = ["example", "file", "100RPM"]
+                     use last fragment/element : rpm = "100RPM"
+                     after the second split rpm = ["100"]
+                     try to convert first fragment/element into an int
+                """
                 rpm = sample_name.split("_")[-1]
                 if "rpm" in rpm :
                     rpm = rpm.split("rpm")[0]
@@ -486,7 +737,7 @@ class Levich_Analysis :
                     try :
                         rpm = int(rpm)
                     except ValueError :
-                        check += 1
+                        count += 1
                         rpm = "automatic RPM recognition failed"
 
                 elif "RPM" in rpm :
@@ -495,13 +746,23 @@ class Levich_Analysis :
                     try :
                         rpm = int(rpm)
                     except ValueError :
-                        check += 1
+                        count += 1
                         rpm = "automatic RPM recognition failed"
 
                 else :
-                    check += 1
+                    count += 1
                     rpm = "automatic RPM recognition failed"
 
+                """ add determined rpm value in a tkinter.Label and display it in the sample_rpm_frame
+                    add tkinter.Entry´s to the sample_rpm_frame for changing the rpm values
+
+                    add the tkinter.Label and tkinter.Entry to the list self.rpm_labels and self.rpm_entries
+
+                    add the rpm value to dict self.rpm_values as value and the sample_name as key
+                    add the sample_rpm_frame to the self.active_rpm_frames list
+
+                    add file_paths to self.file_paths
+                """
                 rpm_label = tk.Label(master = sample_rpm_frame, text = f"{rpm}")
                 rpm_label.grid(row = n + 1, column = 1, padx = 5, pady = 5)
 
@@ -516,7 +777,9 @@ class Levich_Analysis :
 
                 self.active_rpm_frames.append(sample_rpm_frame)
 
-            if check == 0 :
+                self.file_paths = file_paths
+
+            if count == 0 :
                 self.start_evaluation = True
                 self.feedback_label.config(text = "Please check the determined RPM values. Evaluation can be started.")
             else :
@@ -524,12 +787,26 @@ class Levich_Analysis :
 
 
     def get_gui_frame(self, master) :
+        """ returns a tkinter.Frame for a master window (tkinter.Tk)
+            this frame needs to contain all necassyry widgets/functions required for the evalution
+            the grid placement was chosen since it is one of the simplest and cleanest options for a clean tkinter based User Interface
+        """
 
+        """ reset atrributes in order to clean existing dictionaries and lists with previous data
+        """
         self.reset_attributes()
 
         self.program_frame = tk.Frame(master = master, relief = "groove", borderwidth = 2)
         self.program_frame.grid(row = 1, column = 1, padx = 5, pady = 5)
         
+        """ create a tkinter.Frame, which gives general control over the program by containing:
+            - tkinter.Label as Feedback label for Error Messages
+            - tkinter.Buttons with access to the following functions:
+                - self.open_files 
+                    gets file_paths from User Selection
+                - self.run_evaluation
+                    executes the evaluation if the safty switch state is True
+        """
         control_frame = tk.Frame(master = self.program_frame, relief = "groove", borderwidth = 2)
         control_frame.grid(row = 0, column = 0, padx = 5, pady = 5)
 
@@ -542,12 +819,14 @@ class Levich_Analysis :
         run_evaluation_button = tk.Button(master = control_frame, text = "Start Evaluation", command = self.run_evaluation)
         run_evaluation_button.grid(row = 0, column = 2, padx = 5, pady = 5)
 
+        """ create a tkinter.ttk.Checkbutton, which contains the state of the self.save_figure variable
+            default state: False
+        """
         def change_figure_saving_settings() :
             settings = {"1" : True, "0" : False}
             setting = save_figures_variable.get()
 
             self.save_figures = settings[setting]
-
 
         save_figures_variable = tk.StringVar()
         save_figures_checkbox = ttk.Checkbutton(control_frame, text = "automatically save figures", \

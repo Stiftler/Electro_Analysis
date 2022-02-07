@@ -50,7 +50,7 @@ class Tafel_Analysis :
 
         self.program_name = "Tafel Analysis"
 
-        """ set up basic attributes and parameters necassary for the class and evaluation """
+        """ set up basic attributes and parameters necessary for the class and evaluation """
         self.reset_attributes()
         self.reset_parameters()
 
@@ -96,8 +96,7 @@ class Tafel_Analysis :
 
     def reset_attributes(self) :
         """ resets all attributes for Tafel_Analysis class object if desired by User or required for opening new files
-            is executed once if a new Tafel_Analysis class object is initiated to set those as attributes of the 
-            Tafel_Analysis class object
+            is executed once if a new Tafel_Analysis class object is initiated to set those as attributes of the object
         """
 
         self.file_paths = ()
@@ -160,7 +159,7 @@ class Tafel_Analysis :
 
 
     def run_evaluation(self) :
-        """ does the actually evaluation of the selected data
+        """ does the actual evaluation of the selected data
             does only trigger if the following conditions are met:
             - len(self.file_paths) > 0 (files have been selected in the first place)
             - len(self.resistances) and len(self.file_paths) identical (for each sample a resistance is given)

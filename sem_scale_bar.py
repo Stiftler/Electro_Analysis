@@ -35,10 +35,11 @@ class SEM_Image_Tool :
 
         self.feedback_label = None
 
+
     def reset_attributes(self) :
         """ reset attributes (self.file_paths, self.scale_bar_lengths) to default values 
             and creates the evalution folder if it is not existing
-            path_evalution_folder: */SEM_Images/**
+            path_evalution_folder: */Evaluation/**
              * path of this program
              ** current date in the format YYYY-MM-DD
         """
@@ -46,7 +47,12 @@ class SEM_Image_Tool :
         """ setup path for processed images and create it if not present on the systems 
         """
         path_this_programm = os.path.dirname(os.path.realpath(__file__))
-        path_evaluation_folder = f"{path_this_programm}\SEM_Images"
+        path_evaluation_folder = f"{path_this_programm}\Evaluation"
+
+        if not os.path.exists(path_evaluation_folder) :
+            os.mkdir(path_evaluation_folder)
+
+        path_evaluation_folder = f"{path_evaluation_folder}\{self.program_name}"
 
         if not os.path.exists(path_evaluation_folder) :
             os.mkdir(path_evaluation_folder)
@@ -307,18 +313,21 @@ class SEM_Image_Tool :
 
             if self.feedback_label != None :
                 self.feedback_label.config(text = "Image Processing Finished")
-    
+        
+        elif self.feedback_label != None :
+            self.feedback_label.config(text = "Please Select Your Raw Images First.")
 
     def get_gui_frame(self, master) :
         """ returns a tkinter.Frame for a master window (tkinter.Tk)
             this Frame needs to contain all necassary widgets/functions required for the image processing 
-            the grid placement was chosen since it is one of the simplest and cleanest options for tkinter User Interfaces
+            the grid placement was chosen since it is one of the simplest and cleanest options for a clean tkinter based User Interface
         """
 
         """ create tkinter.Frame 
             keywords: borderwith and relief for asthetics
             positon in grid row = 1, column = 1 is necassary for the GUI program written by Pascal Reiß (CS_Analysis_Tool.py)
-            if new GUI is created these values can be tuned """
+            if new GUI is created these values can be tuned 
+        """
         self.program_frame = tk.Frame(master = master, relief = "groove", borderwidth = 2)
         self.program_frame.grid(row = 1, column = 1, padx = 5, pady = 5)
 
@@ -347,15 +356,10 @@ if __name__ == "__main__" :
     """ main program if this program is run directly and is not imported into another python project
     """
     
-    root = tk.Tk()
-    
     sem = SEM_Image_Tool()
-    
-    root.title(sem.program_name)
 
-    sem.get_gui_frame(root)
-
-    root.mainloop()
+    sem.open_files()
+    sem.run_image_processing()
 
 
 

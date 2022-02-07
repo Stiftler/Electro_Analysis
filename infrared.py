@@ -15,7 +15,31 @@ from matplotlib.widgets import SpanSelector
 class Infrared_Analysis :
 
     def __init__(self) :
+        """ initiate Infrared_Analysis class with the following attributes:
+            - self.save_figures
+                (boolean: contains the state if the User wants to save the created figures automatically
+                default state: False)
+            - self.file_paths
+                (tuple: contains the file_paths of the selected raw data files by the User)
+            - self.local_min_threshold
+                (float: value between 0 and 1
+                sets the threshold for the automatic local minima determination
+                default setting: 0.4)
+            - self.path_evaluation_folder
+                (string: contains the path of the evalution folder)
+            - self.program_frame
+                (tkinter.Frame: is an object required in the GUI if a GUI is desired in a seperate program)
+            - self.feedback_label 
+                (tkinter.Label: contains Feedback for the User if a process was succesful or failed)
+            - self.local_min_setting
+                (boolean: state if local minima shall be determined automatically
+                default state: False)
+            - self.local_min_frame
+                (tkinter.Frame: is an object required in the self.program_frame if the User wants to determine the local minima automatically)
+        """
 
+        """ set up basic attributes required for the Infrared_Analysis
+        """
         self.program_name = "Infrared Analysis"
 
         self.save_figures = False
@@ -32,9 +56,16 @@ class Infrared_Analysis :
 
 
     def reset_attributes(self) :
-
+        """ resets all atttributes for the Infrared_Analysis class object 
+            this function is executed once when a new Infrared_Analysis class object is initiated 
+        """
         self.file_paths = ()
 
+        """ create evaluation folder to save evaluated data and figures (if it does not exist yet)
+            created folder is at */Evaluation/Infrared Analysis/**
+             * path of this program
+             ** current date in format YYYY-MM-DD
+        """
         path_of_this_program = os.path.dirname(os.path.realpath(__file__))
 
         path_evaluation_folder = f"{path_of_this_program}\Evaluation"
@@ -60,10 +91,21 @@ class Infrared_Analysis :
 
 
     def get_gui_frame(self, master) :
-        
+        """ returns a tkinter.Frame to a master window (tkinter.Tk)
+            this frame needs to contain all necassyry widgets/functions required for the evalution
+            the grid placement was chosen since it is one of the simplest and cleanest options for a clean tkinter based User Interface
+        """
         self.program_frame = tk.Frame(master = master, relief = "groove", borderwidth = 2)
         self.program_frame.grid(row = 1, column = 1, padx = 5, pady = 5)
 
+        """ create an additional tkinter.Frame acting as a control panel with access to the following functions via tkinter.Buttons
+            - self.open_files
+                get file_paths from selected files by User
+            - self.run_evaluation
+                executes the evaluation
+
+            create a tkinter.Label acting as a Feedback Label for Error Messages for the User
+        """
         control_frame = tk.Frame(master = self.program_frame, relief = "groove", borderwidth = 2)
         control_frame.grid(row = 0, column = 0, padx =5, pady = 5)
 
@@ -76,6 +118,10 @@ class Infrared_Analysis :
         self.feedback_label = tk.Label(master = control_frame, text = "Please Select Your Raw Data First.", font = "Arial")
         self.feedback_label.grid(row = 0, column = 1, padx = 5, pady = 5)
 
+        """ create a tkinter.tkk.Checkbutton, which contains the state of the self.save_figures
+            it controls if created figures are saved automatically
+            default state: False 
+        """
         def change_figure_saving_settings() :
             settings = {"1" : True, "0" : False}
             setting = save_figures_variable.get()
@@ -98,12 +144,24 @@ class Infrared_Analysis :
             else :
                 local_min_frame.grid_forget()
 
-
+        """ create a tkinter.tkk.Checkbutton, which contains the state of the self.local_min_setting
+            it controls if local minima positons shall be determined automatically
+            default state: False 
+        """
         local_min_variable = tk.StringVar()
         local_min_checkbox = ttk.Checkbutton(control_frame, text = "automatic local minimas",
             variable = local_min_variable, command = change_local_min_settings)
         local_min_checkbox.grid(row = 2, column = 0, padx = 5, pady = 5)
 
+        """ create a tkinter.Frame, which contains
+            - tkinter.Labels
+                displaying the currently set local minima treshold
+            - tkinter.Entry
+                enabling entering new local minima tresholds
+                valid inputs are float in the range between 0 and 1
+            - tkinter.Button
+                with access to change self.local_min_treshold
+        """
         local_min_frame = tk.Frame(self.program_frame, relief = "groove", borderwidth = 2)
 
         local_min_label = tk.Label(local_min_frame, text = "Please Enter A Treshold for the\nAutomatic Local Minima Determination", font = ("Arial", 10))
@@ -140,10 +198,10 @@ class Infrared_Analysis :
         return self.program_frame
 
 
-
-
     def open_files(self) :
-
+        """ get selected files by User and add those to self.file_paths if files were selected
+            if no files were selected an Error Message is displayed in self.feedback_label
+        """
         root = tk.Tk()
         file_paths = filedialog.askopenfilenames(parent = root)
         root.destroy()
@@ -156,27 +214,47 @@ class Infrared_Analysis :
     
 
     def run_evaluation(self) :
+        """ does the actual evaluation of the selected data
+            does only trigger if files were selected in the first place 
+            otherwise an Error Message is raised for the User in the self.feedback_label
+        """
 
         if len(self.file_paths) > 0 :
 
+            """ if statement required if the program is used in a GUI
+            """
             if self.feedback_label != None :
                 self.feedback_label.config(text = "Evaluation in Progress.")
 
+            """ loop through each selected file in self.file_paths
+                process data and save data for later use in datas dictionary as value and sample_name as key
+            """
             datas = {}
             for file_path in self.file_paths :
+                """ get the sample_name from the file_path
+                """
                 file_name = os.path.basename(file_path)
                 sample_name = file_name.split(".dpt")[0]
 
+                """ open data of sample 
+                    get normalized intensity between 0 and 1 
+                    add data DataFrame to datas dict as value and sample_name as key
+                """
                 data = pd.read_csv(file_path, delimiter = "\t", names = ["wave_number", "intensity"])
 
                 data["normalized_intensity"] = self.get_normalized_intensity(data["intensity"])                
 
                 datas[sample_name] = data
 
+                """ determine local minima position if selected the automatic local minma determination 
+                """
                 if self.local_min_setting :
                     self.get_local_min_pos(data)
 
-
+                """ plot normalized intenstiy vs wave number in figure if User wants to save the figures automatically
+                    invert x axis
+                    add x and y axis label 
+                """
                 if self.save_figures :
 
                     fig, ax = plt.subplots()
@@ -192,6 +270,8 @@ class Infrared_Analysis :
 
                     plt.close(fig)
 
+                """ drop column intensity in data DataFrame and save it in the evaluation folder
+                """
                 data.drop("intensity", axis = 1, inplace = True)
 
                 if self.local_min_setting :
@@ -236,6 +316,12 @@ class Infrared_Analysis :
                 
 
     def get_normalized_intensity(self, intensity) :
+        """ returns an normalized data set between 0 and 1 by the formular
+            intensity = (intensity - min-intensity) / (max-intensity - min-intensity)
+
+            expected argument datatype:
+            - intensity: pandas.Series
+        """
 
         intensity = (intensity - min(intensity)) / (max(intensity) - min(intensity))
 
@@ -243,7 +329,12 @@ class Infrared_Analysis :
 
 
     def get_local_min_pos(self, data) :
+        """ searches for local minima in the column normalized_intensity from the data DataFrame by comparing each position with its direct neighbor if it
+            represents an local minima
 
+            known issues:
+            - detects every minima position (can by fine tuned by setting right self.local_min_treshold)
+        """
         intensity = data["normalized_intensity"]
 
         count = 0

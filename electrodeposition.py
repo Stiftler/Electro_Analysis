@@ -26,7 +26,7 @@ class Electrodeposition_Analysis :
             - self.save_figures (boolean: contains info if User wants to save a figure created during the evaluation
                 default setting : False
                 can be changed in the User Interface)
-                """
+        """
 
         self.program_name = "Electrodeposition Analysis"
 
@@ -43,7 +43,8 @@ class Electrodeposition_Analysis :
         """ create evaluation folder to save evaluated data and figures (if it does not exist yet)
             created folder is at */Evaluation/Electrodepostion Analysis/**
              * path of this program
-             ** current date in format YYYY-MM-DD"""
+             ** current date in format YYYY-MM-DD
+        """
 
         path_this_programm = os.path.dirname(os.path.realpath(__file__))
 
