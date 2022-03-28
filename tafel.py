@@ -1,5 +1,5 @@
 """ Tafel Analysis Tool by Pascal Reiß
-    Version 1.0.1 
+    Version 1.0.2 
 """
 
 import os
@@ -74,6 +74,9 @@ class Tafel_Analysis :
             os.mkdir(path_evaluation_folder)
 
         path_evaluation_folder = f"{path_evaluation_folder}\{self.program_name}"
+
+        if not os.path.exists(path_evaluation_folder) :
+            os.mkdir(path_evaluation_folder)
 
         today = datetime.today().strftime("%Y-%m-%d")
 
@@ -221,8 +224,8 @@ class Tafel_Analysis :
                 """ add calculated fit values to existing DataFrame for saving the evaluated data
                     add calculated fit values to result_frame"""
                 data_save["Tafel Fit"] = data["tafel_fit"]
-                data_save["Tafel_slope"] = [tafel_slope] + [np.nan] * (len(data_save) - 1)
-                data_save["Tafel intersect"] = [tafel_intersect] + [np.nan] * (len(data_save) - 1)
+                data_save["Tafel Slope"] = [tafel_slope] + [np.nan] * (len(data_save) - 1)
+                data_save["Tafel Intersect"] = [tafel_intersect] + [np.nan] * (len(data_save) - 1)
 
                 results_for_gui.at["exchange_current_density", sample_name] = exchange_current_density
                 results_for_gui.at["tafel_slope", sample_name] = tafel_slope
@@ -529,6 +532,19 @@ class Tafel_Analysis :
 
             plt.show()
 
+            if self.save_figures :
+                """ save figure automatically if state True
+                    counts all files in the evaluation folder with an .jpg ending
+                    adds the count at the end of the file_name
+                """
+                files_in_directory = os.listdir(self.path_evaluation_folder)
+
+                count = 0
+                for file in files_in_directory :
+                    if ".jpg" in file :
+                        count += 1
+                fig.savefig(f"{self.path_evaluation_folder}\Tafel_{count}.jpg")
+
         elif len(self.resistances) < len(self.file_paths) or len(self.failed_entries) > 0 :
             self.feedback_label.config(text = "Please enter all resistances first.")
 
@@ -557,7 +573,7 @@ class Tafel_Analysis :
         self.reset_attributes()
 
         root = tk.Tk()
-        file_paths = filedialog.askopenfilenames(parent = root)
+        file_paths = filedialog.askopenfilenames(parent = root, filetypes=[("Text files","*.txt")])
         root.destroy()
 
         if len(file_paths) > 0 :
@@ -870,4 +886,15 @@ if __name__ == "__main__" :
   --> fixed
 - when new files are entered the resistances of all the old files are still existing 
   --> fixed
+"""
+
+""" made by Stiftler (Pascal Reiß)
+"""
+
+"""
+update list: 
+
+Version 1.0.2 (28.03.2022)
+- added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
+  in this case: ["Text Files", "*.txt"]
 """

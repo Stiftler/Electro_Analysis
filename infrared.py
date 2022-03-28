@@ -1,5 +1,5 @@
 """ Infrared Analysis Tool by Pascal Reiß
-    Version 1.0.1 
+    Version 1.0.2
 """
 
 import tkinter as tk
@@ -203,7 +203,7 @@ class Infrared_Analysis :
             if no files were selected an Error Message is displayed in self.feedback_label
         """
         root = tk.Tk()
-        file_paths = filedialog.askopenfilenames(parent = root)
+        file_paths = filedialog.askopenfilenames(parent = root, filetypes=[("DPT files","*.dpt")])
         root.destroy()
 
         if len(file_paths) > 0 :
@@ -359,3 +359,16 @@ if __name__ == "__main__" :
     ir = Infrared_Analysis()
     ir.open_files()
     ir.run_evaluation()
+
+
+
+""" made by Stiftler (Pascal Reiß)
+"""
+
+"""
+update list: 
+
+Version 1.0.2 (28.03.2022)
+- added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
+  in this case: ["DPT Files", "*.dpt"]
+"""

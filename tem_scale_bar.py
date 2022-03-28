@@ -1,5 +1,5 @@
 """ TEM Scale Bar Tool by Pascal Reiß
-    Version 1.0.2
+    Version 1.0.3
 """
 
 import os
@@ -139,7 +139,7 @@ class TEM_Image_Tool :
         self.file_paths = ()
 
         root = tk.Tk()
-        file_paths = filedialog.askopenfilenames(parent = root)
+        file_paths = filedialog.askopenfilenames(parent = root, filetypes=[("DM3 files","*.dm3")])
         root.destroy()
 
 
@@ -240,7 +240,9 @@ class TEM_Image_Tool :
                 if self.preview_mode :
                     plt.show()
 
-                fig.savefig(f"{self.path_evaluation_folder}\{sample_name}{self.figure_type}", dpi = self.figure_dpi, bbox_inches = "tight", pad_inches = 0)
+                if not self.preview_mode :
+                    fig.savefig(f"{self.path_evaluation_folder}\{sample_name}{self.figure_type}", dpi = self.figure_dpi, bbox_inches = "tight", pad_inches = 0)
+
                 plt.close(fig)
 
 
@@ -599,5 +601,10 @@ if __name__ == "__main__" :
 """
 update list: 
 Version 1.0.2
+
 - added features for customising given graphs and scale bar
+
+Version 1.0.3 (28.03.2022)
+- added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
+  in this case: ["DM3 Files", "*.dm3"]
 """

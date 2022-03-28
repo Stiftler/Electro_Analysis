@@ -1,5 +1,5 @@
 """ Levich Analysis Tool by Pascal Reiß
-    Version 1.0.1 
+    Version 1.0.2
 """
 
 import tkinter as tk
@@ -272,7 +272,7 @@ class Levich_Analysis :
                 self.data_levich[f"Current (A) @ {round(xmin, 3)} V"] = data_levich["current"]
                 self.data_levich[f"Root of Rotation Rate ((rad/s)^0.5) @ {round(xmin, 3)} V"] = data_levich["sqrt_rotation_rate"]
                 self.data_levich[f"Levich Slope (A/(rad/s)^0.5) @ {round(xmin, 3)} V"] = [levich_slope] + [np.nan] * (len(data_levich) - 1)
-                self.data_levich[f"Levich Intersect (A) V"] = [levich_intersect] + [np.nan] * (len(data_levich) - 1)
+                self.data_levich[f"Levich Intersect (A) @ {round(xmin, 3)} V"] = [levich_intersect] + [np.nan] * (len(data_levich) - 1)
 
                 """ display results obtained Levich fit in GUI
                 """
@@ -649,7 +649,7 @@ class Levich_Analysis :
         """
         
         root = tk.Tk()
-        file_paths = filedialog.askopenfilenames(parent = root)
+        file_paths = filedialog.askopenfilenames(parent = root, filetypes=[("Text files","*.txt")])
         root.destroy()
 
         if len(file_paths) > 0 :
@@ -849,4 +849,12 @@ if __name__ == "__main__" :
     root.mainloop()
 
 """ made by Stiftler (Pascal Reiß)
+"""
+
+"""
+update list: 
+Version 1.0.2 (28.03.2022)
+
+- added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
+  in this case: ["Text Files", "*.txt"]
 """

@@ -1,18 +1,20 @@
 # CS Analysis Tool by Pascal Reiß
-# Version 1.0.1
+# Version 1.0.2
 
-# basic imports
+# basic python libary imports
 import os
 import tkinter as tk
 from datetime import datetime
 
 # imports of own programs
+# imports of analytical tools
 import levich as la
 import tafel as ta
 import electrodeposition as ed
 import infrared as ir
 import cyclovoltammetry as cv
 
+# imports of 
 import sem_scale_bar as sem
 import tem_scale_bar as tem
 
@@ -143,8 +145,8 @@ if __name__ == "__main__" :
                     la.Levich_Analysis(), # adds Levich and Koutecky-Levich Analysis
                     ta.Tafel_Analysis(), # adds Tafel Analysis
                     ed.Electrodeposition_Analysis(), # adds Electrodeposition Analysis
-                    ir.Infrared_Analysis(), # adds Infrared Analysis
                     cv.Cyclovoltammetry_Analysis(), # adds Cyclovoltammetry Analysis
+                    ir.Infrared_Analysis(), # adds Infrared Analysis
                     sem.SEM_Image_Tool(), # adds SEM Image Scale Bar Tool
                     tem.TEM_Image_Tool() # adds TEM Image Scale Bar Tool
                     ]
@@ -159,4 +161,11 @@ if __name__ == "__main__" :
 
 
 """ made by Stitler (Pascal Reiß)
+"""
+
+"""
+update list: 
+Version 1.0.2 (28.03.2022)
+
+- added update list 
 """

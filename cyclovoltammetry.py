@@ -1,5 +1,5 @@
 """ Cyclovoltammetry Analysis Tool by Pascal Reiß
-    Version 1.0.1 
+    Version 1.0.3
 """
 
 import os
@@ -80,7 +80,7 @@ class Cyclovoltammetry_Analysis :
             if no files were selected an Error Message is displayed in the self.feedback_label in the GUI
         """
         root = tk.Tk()
-        file_paths = filedialog.askopenfilenames(parent = root)
+        file_paths = filedialog.askopenfilenames(parent = root, filetypes=[("Text files","*.txt")])
         root.destroy()
 
         if len(file_paths) > 0 :
@@ -246,3 +246,18 @@ if __name__ == "__main__" :
     cv.area_electrode = 0.071 # debugging with given raw data files by Jonas
 
     cv.run_evaluation()
+
+
+""" made by Stiftler (Pascal Reiß)
+"""
+
+"""
+update list: 
+Version 1.0.2 
+
+- update list didn´t exist yet 
+
+Version 1.0.3 (28.03.2022)
+- added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
+  in this case: ["Text Files", "*.txt"]
+"""

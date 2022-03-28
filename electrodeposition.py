@@ -1,5 +1,5 @@
 """ Electrodeposition Analysis Tool by Pascal Reiß
-    Version 1.0.1 
+    Version 1.0.2
 """
 
 import tkinter as tk
@@ -12,6 +12,7 @@ import os
 from datetime import datetime
 
 class Electrodeposition_Analysis :
+    
     
     def __init__(self) :
 
@@ -117,7 +118,7 @@ class Electrodeposition_Analysis :
                 """
                 data_save = pd.DataFrame()
 
-                data_save["Time_(min)]"] = data["Time_(min)"]
+                data_save["Time_(min)"] = data["Time_(min)"]
                 data_save["Current_(A)"] = data["WE(1).Current (A)"]
                 data_save["Potential_(V)"] = data["WE(1).Potential (V)"]
 
@@ -148,11 +149,11 @@ class Electrodeposition_Analysis :
         """ gets file_paths of raw data files from User which shall be evaluated by this program 
         """
         self.file_paths = () # just in case old files were selected previously, those are overwritten and forgotten
-
-        self.feedback_label.config(text = "Please select your raw data files.")
+        if self.feedback_label != None :
+            self.feedback_label.config(text = "Please select your raw data files.")
 
         root = tk.Tk()
-        file_paths = filedialog.askopenfilenames(parent = root)  
+        file_paths = filedialog.askopenfilenames(parent = root, filetypes=[("Text files","*.txt")])  
         root.destroy()
 
         self.file_paths = file_paths
@@ -255,5 +256,13 @@ if __name__ == "__main__" :
 
 
 
-""" made by Stiftler (Pascal Reiß) 
+""" made by Stiftler (Pascal Reiß)
+"""
+
+"""
+update list: 
+
+Version 1.0.2 (28.03.2022)
+- added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
+  in this case: ["Text Files", "*.txt"]
 """
