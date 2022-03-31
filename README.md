@@ -4,6 +4,10 @@ Install Python
 
     -go to https://www.python.org/downloads/release/python-3102/
     -download the respective file for your pc (in case for 64-bit Windows: Windows installer (64-bit))
+    -open the downloaded file
+    -IMPORTANT: mark the checkbox below for add Python to PATH 
+    -use the fast installation option (Install Now) 
+     includes pip, which is necassary for installing the further depencies of this project
 
 
 Dependencies (Libary):
@@ -41,5 +45,3 @@ How to install DM3 reader:
     Finished processing dependencies for dm3-lib==1.2
     
 
-
-Informationen zum Download und Installation folgen
