@@ -1,5 +1,5 @@
 """ TEM Scale Bar Tool by Pascal Reiß
-    Version 1.0.3
+    Version 1.1.1
 """
 
 import os
@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 import matplotlib.pyplot as plt
+from matplotlib.widgets import RectangleSelector
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import matplotlib.font_manager as fm
 from datetime import datetime
@@ -54,6 +55,7 @@ class TEM_Image_Tool :
         self.scale_bar_positions = ["upper left", "upper right", "lower left", "lower right"]
 
         self.preview_mode = False
+        self.rectangle_mode = False
 
         self.reset_attributes()
         self.reset_figure_attributes()
@@ -74,6 +76,7 @@ class TEM_Image_Tool :
         self.file_paths = ()
 
         self.scale_bar_lengths = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
+
 
 
     def reset_figure_attributes(self) :
@@ -128,7 +131,12 @@ class TEM_Image_Tool :
         """ returns the vertical size setting of the scale_bar depending on the resolution
         """
         resolution_x, resolution_y = str(resolution_x), str(resolution_y)
+
+        print(resolution_x, resolution_y)
         if resolution_x == "4096" and resolution_y == "4095" :
+            return 10
+
+        elif resolution_x == "2048" and resolution_y == "2048" :
             return 10
 
 
@@ -159,9 +167,20 @@ class TEM_Image_Tool :
         """
         if len(self.file_paths) > 0 :
 
+
             if self.feedback_label != None :
                 self.feedback_label.config(text = "Image Processing In Progress.")
-            
+
+            def onselect_rectangle(eclick, erelease) :
+
+                x1, y1 = eclick.xdata, eclick.ydata
+                x2, y2 = erelease.xdata, erelease.ydata
+
+                ax.set_xlim(x1, x2)
+                ax.set_ylim(y2, y1)
+                fig.canvas.draw()
+
+
             """ loop through each file indiviually
             """
             for file_path in self.file_paths :
@@ -239,12 +258,26 @@ class TEM_Image_Tool :
 
                 if self.preview_mode :
                     plt.show()
+                    break
+
+                elif self.rectangle_mode :
+                    rectangle_selector = RectangleSelector(ax,
+                                                           onselect_rectangle,
+                                                           useblit = True,
+                                                           button = [1],
+                                                           spancoords = "data",
+                                                           minspanx = 20,
+                                                           minspany = 20,
+                                                           )
+
+                    plt.show()
 
                 if not self.preview_mode :
                     fig.savefig(f"{self.path_evaluation_folder}\{sample_name}{self.figure_type}", dpi = self.figure_dpi, bbox_inches = "tight", pad_inches = 0)
 
                 plt.close(fig)
 
+            self.preview_mode = False
 
             if self.feedback_label != None :
                 self.feedback_label.config(text = "Image Processing Finished.")
@@ -353,6 +386,17 @@ class TEM_Image_Tool :
         change_properties_checkbox = ttk.Checkbutton(control_frame, text = "change settings",
                                                         variable = change_properties_variable, command = enable_change_properties_frame)
         change_properties_checkbox.grid(row = 1, column = 0, padx = 5, pady = 5)
+
+        def change_rectangle_mode() :
+            setting = change_rectangle_variable.get()
+            dic = {"1" : True, "0" : False}
+
+            self.rectangle_mode = dic[setting]
+
+        change_rectangle_variable = tk.StringVar()
+        change_rectangle_checkbox = ttk.Checkbutton(control_frame, text = "cut out mode",
+                                                    variable = change_rectangle_variable, command = change_rectangle_mode)
+        change_rectangle_checkbox.grid(row = 2, column = 0, padx = 5, pady = 5)
 
         """ tkinter.Frame with all widgets necessary for changing general scale bar settings
         """
@@ -607,4 +651,7 @@ Version 1.0.2
 Version 1.0.3 (28.03.2022)
 - added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
   in this case: ["DM3 Files", "*.dm3"]
+
+Version 1.1.1 (29.03.2022)
+- added feature for cutting out rectangles in the image (known issue: new customization of scale bar necessary)
 """
