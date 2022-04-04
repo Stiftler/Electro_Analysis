@@ -1,5 +1,5 @@
 """ SEM Scale Bar Tool by Pascal Reiß
-    Version 1.1.1
+    Version 1.1.2
 """
 
 from PIL import Image
@@ -22,6 +22,7 @@ from tkinter import ttk
 
 
 class SEM_Image_Tool :
+
 
     def __init__(self) :
         """ initiate SEM_Image_Tool class object with the following attributes:
@@ -69,7 +70,15 @@ class SEM_Image_Tool :
 
         self.rectangle_selected = None
 
-        self.mouse_pressed = False
+        self.mouse_pressed = False # required if crop out mode is used and the rectangle is displayed during mouse events
+
+        """ undo step list for undo and redo function of rectangle mode
+        """
+
+        self.current_position_undo_list = 0
+        self.undo_list = []
+
+        self.undo_redo_state = False
 
     def reset_attributes(self) :
         """ reset attributes (self.file_paths, self.scale_bar_lengths) to default values 
@@ -100,6 +109,7 @@ class SEM_Image_Tool :
 
         self.ax.set_axis_off()
         self.ax.set_title("No Files Selected")
+
 
     def check_for_evaluation_folder(self) :
 
@@ -264,8 +274,20 @@ class SEM_Image_Tool :
             x1, y1 = eClick[0], eClick[1] 
             x2, y2 = eRelease[0], eRelease[1] 
 
-            self.ax.set_xlim(x1, x2)
+            if x1 > x2 :
+                x1, x2 = x2, x1
+            if y1 > y2 :
+                y1, y2 = y2, y1
+
+            xlim = (x1, x2)
+            ylim = (y1, y2)
+
+            self.ax.set_xlim(xlim)
             self.ax.set_ylim(y2, y1)
+
+            if not self.undo_redo_state :
+                self.undo_list.append((xlim, ylim))
+                self.current_position_undo_list = (len(self.undo_list) - 1)
 
             self.preview_canvas.draw()
 
@@ -285,6 +307,7 @@ class SEM_Image_Tool :
 
             self.mouse_pressed = True
 
+
     def create_dynamic_rectangle_in_plt(self, event) :
 
         if self.rectangle_mode and self.mouse_pressed:
@@ -297,6 +320,7 @@ class SEM_Image_Tool :
             self.rectangle_selected.set_height(self.rectangle_y2_plt - self.rectangle_y1_plt)
 
             self.preview_canvas.draw()
+
 
     def get_xy_coords_mouse_release_event_plt(self, event) :
 
@@ -435,6 +459,10 @@ class SEM_Image_Tool :
 
                     self.ax.set_axis_off()
 
+                    xlim = self.ax.get_xlim()
+
+                    self.undo_list = [(xlim, ylim)]
+
                     self.preview_canvas.draw()
 
 
@@ -549,6 +577,7 @@ class SEM_Image_Tool :
                 self.image_processing_from_path(file_path)
                 self.preview_file_label.config(text = f"Displayed File: {file_name}")
 
+
         def goRight_preview() :
 
             if self.preview_index < (len(self.file_paths) - 1) :
@@ -559,6 +588,7 @@ class SEM_Image_Tool :
 
                 self.image_processing_from_path(file_path)
                 self.preview_file_label.config(text = f"Displayed File: {file_name}")
+
 
         goLeft_preview_button = tk.Button(master = preview_buttons_frame, text = "\u2190", # u2190 arrow pointing to the left
                                           command = goLeft_preview, font = ("", 14)) 
@@ -585,6 +615,49 @@ class SEM_Image_Tool :
                                              command = set_rectangle_mode, font = ("", 14))
         rectangle_control_button.grid(row = 0, column = 2, padx = 5, pady = 5)
 
+
+        def undo () :
+
+            if self.current_position_undo_list > 0 :
+                self.current_position_undo_list -= 1
+
+                self.undo_redo_state = True
+
+                xlim = self.undo_list[self.current_position_undo_list][0]
+                ylim = self.undo_list[self.current_position_undo_list][1]
+
+                xy1 = (xlim[0], ylim[1])
+                xy2 = (xlim[1], ylim[0])
+
+                self.rectangle_onselect(xy1, xy2)
+
+                self.undo_redo_state = False
+
+        undo_button = tk.Button(master = preview_buttons_frame, text = "\u27F2", # curved arrow to the right
+                                command = undo, font = ("", 14))
+        undo_button.grid(row = 0, column = 3, padx = 5, pady = 5)
+
+        def redo() :
+            
+            if self.current_position_undo_list < (len(self.undo_list) - 1) :
+                self.current_position_undo_list += 1
+
+                self.undo_redo_state = True
+
+                xlim = self.undo_list[self.current_position_undo_list][0]
+                ylim = self.undo_list[self.current_position_undo_list][1]
+
+                xy1 = (xlim[0], ylim[1])
+                xy2 = (xlim[1], ylim[0])
+
+                self.rectangle_onselect(xy1, xy2)
+
+                self.undo_redo_state = False
+
+        redo_button = tk.Button(master = preview_buttons_frame, text = "\u27F3", # curved arrow to the left
+                                command = redo, font = ("", 14))
+        redo_button.grid(row = 0, column = 4, padx = 5, pady = 5)
+
         def save_current_preview() :
             """ saves currently displayed image if files were selected by user len(TEM_Image_Tool.file_paths) > 0
             """
@@ -599,7 +672,7 @@ class SEM_Image_Tool :
 
         save_current_preview_button = tk.Button(master = preview_buttons_frame, text = "\U0001F4BE", # U0001F4BE save icon
                                                 command = save_current_preview, font = ("", 14))
-        save_current_preview_button.grid(row = 0, column = 3, padx = 5, pady = 5)
+        save_current_preview_button.grid(row = 0, column = 5, padx = 5, pady = 5)
 
         self.preview_file_label = tk.Label(master = self.preview_frame, text = "Displayed File:", font = ("", 12))
         self.preview_file_label.grid(row = 3, column = 0, padx = 5, pady = 5)
@@ -610,6 +683,7 @@ class SEM_Image_Tool :
         """ create a tkinter.Frame, which contains all widget necassary for the User if changes to the figures shall be made (compared to the standard process) 
         """
         change_properties_frame = tk.Frame(master = main_frame, relief = "groove", borderwidth = 2)
+
 
         def enable_change_properties_frame() :
             setting = change_properties_variable.get()
@@ -881,6 +955,26 @@ class SEM_Image_Tool :
 
 
 
+        """ hotkey bindings
+        """
+        master.bind("<Left>", lambda event : goLeft_preview())
+
+        master.bind("<Right>", lambda event : goRight_preview())
+
+        master.bind("<Control-k>", lambda event : set_rectangle_mode())
+
+        master.bind("<Control-z>", lambda event : undo())
+
+        master.bind("<Control-y>", lambda event : redo())
+
+        master.bind("<Control-s>", lambda event : save_current_preview())
+
+        master.bind("<Control-o>", lambda event : self.open_files())
+
+        master.bind("<Control-r>", lambda event : self.run_image_processing())
+
+
+
         return self.program_frame
 
 
@@ -925,6 +1019,15 @@ Version 1.1.1 (02.04.2022)
   function displays a rectangle (matplotlib.patches.Rectangle) which shows selected area 
   rectangle is drawn by holding MouseButton-1 (left) and after releasing the selected area is cropped out
 - added save_current_preview_button, which saves the currently displayed image locally
+
+Version 1.1.2 (04.04.2022)
+- added undo/redo function to cropout function 
+  can be accessed by undo_button and redo_button (also CTRL + Z for undo and CTRL + Y for redo)
+- added CTRl + S as shortcurt for saving current preview
+- addd left and right arrow for switching preview
+- added CTRL + K as shortcut for activating cropout function
+- added CTRL + R as shortcurt for running image processing (all files)
+- added CTRL + O as shortcut for opening files
 """
 
 """
