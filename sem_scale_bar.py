@@ -1,12 +1,16 @@
 """ SEM Scale Bar Tool by Pascal Reiß
-    Version 1.0.8
+    Version 1.1.1
 """
 
 from PIL import Image
 import pandas as pd
+
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import matplotlib.font_manager as fm
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 import os
 from datetime import datetime 
 
@@ -38,8 +42,7 @@ class SEM_Image_Tool :
 
 
         self.fonts = {"consola" : r"C:\WINDOWS\Fonts\consola.ttf",
-                      "arial_1" : r"C:\Windows\Fonts\arial.ttf", 
-                      "arial_2" : r"C:\WINDOWS\Fonts\ARIALN.TTF",
+                      "arial" : r"C:\Windows\Fonts\arial.ttf", 
                       "times" : r"C:\Windows\Fonts\times.ttf",
                       }
 
@@ -54,10 +57,19 @@ class SEM_Image_Tool :
 
         self.preview_mode = False
 
+        self.preview_index = 0 # keeps track which file_path is displayed in the SEM_Image_Tool.preview_canvas
+
 
         self.reset_figure_attributes()
         self.reset_scale_bar_attributes()
 
+        """ set up RectangleSelector for rectangle_mode 
+        """
+        self.rectangle_mode = False
+
+        self.rectangle_selected = None
+
+        self.mouse_pressed = False
 
     def reset_attributes(self) :
         """ reset attributes (self.file_paths, self.scale_bar_lengths) to default values 
@@ -84,6 +96,11 @@ class SEM_Image_Tool :
         self.figure_type = self.figure_types["TIFF"]
 
 
+        self.fig, self.ax = plt.subplots()
+
+        self.ax.set_axis_off()
+        self.ax.set_title("No Files Selected")
+
     def check_for_evaluation_folder(self) :
 
         path_this_programm = os.path.dirname(os.path.realpath(__file__))
@@ -109,12 +126,14 @@ class SEM_Image_Tool :
         """ fontproperties of the scale bar
         """
         self.fontsize = 20 # for label
-        self.font_selected = self.fonts["arial_1"]
+        self.font_selected = self.fonts["arial"]
 
         self.scale_bar_color = self.colors[0]
         self.scale_bar_position = self.scale_bar_positions[0]
         self.frameon = False
         self.scale_bar_label_sep = 10
+
+        self.scale_bar_size_vertical = "automatic"
 
         self.scale_bar_treshold = "automatic"
 
@@ -132,11 +151,26 @@ class SEM_Image_Tool :
         if len(file_paths) > 0 :
             self.file_paths = file_paths
 
+            self.preview_index = 0
+            self.image_processing_from_path(file_paths[self.preview_index])
+
+            file_name = os.path.basename(file_paths[self.preview_index])
+            self.preview_file_label.config(text = f"Displayed File: {file_name}")
+
             if self.feedback_label != None :
                 self.feedback_label.config(text = "Image Processing Can Now Be Started.")
 
         elif self.feedback_label != None :
             self.feedback_label.config(text = "Please Select Your Raw Images First.")
+
+            self.ax.clear()
+            self.ax.set_axis_off()
+            self.ax.set_title("No Files Selected")
+            print("hello")
+
+            self.preview_file_label.config(text = "Displayed File:")
+
+            self.preview_canvas.draw()
 
 
     def get_pixel_size_and_unit(self, series) :
@@ -199,7 +233,10 @@ class SEM_Image_Tool :
         """ returns the vertical size setting of the scale_bar depending on the resolution
         """
 
-        if resolution_x == "1024" and resolution_y == "768" :
+        if self.scale_bar_size_vertical != "automatic" :
+            return self.scale_bar_size_vertical
+
+        elif resolution_x == "1024" and resolution_y == "768" :
             return 10
 
         elif resolution_x == "2048" and resolution_y == "1536" :
@@ -219,6 +256,188 @@ class SEM_Image_Tool :
             return 150
 
 
+    def rectangle_onselect(self, eClick, eRelease) :
+
+        if self.rectangle_mode :
+
+            
+            x1, y1 = eClick[0], eClick[1] 
+            x2, y2 = eRelease[0], eRelease[1] 
+
+            self.ax.set_xlim(x1, x2)
+            self.ax.set_ylim(y2, y1)
+
+            self.preview_canvas.draw()
+
+
+    def get_xy_coords_mouse_press_event_plt(self, event) :
+
+        if self.rectangle_mode :
+
+            self.rectangle_x1_plt, self.rectangle_y1_plt = event.xdata, event.ydata
+        
+            self.rectangle_selected = Rectangle((self.rectangle_x1_plt, self.rectangle_y1_plt), 
+                                                 100, 100, 
+                                                 color = "red", fill = False, ls = "--")
+
+            self.ax.add_patch(self.rectangle_selected)
+            self.preview_canvas.draw()
+
+            self.mouse_pressed = True
+
+    def create_dynamic_rectangle_in_plt(self, event) :
+
+        if self.rectangle_mode and self.mouse_pressed:
+            
+            self.rectangle_x2_plt = event.xdata
+            self.rectangle_y2_plt = event.ydata
+
+
+            self.rectangle_selected.set_width(self.rectangle_x2_plt - self.rectangle_x1_plt)
+            self.rectangle_selected.set_height(self.rectangle_y2_plt - self.rectangle_y1_plt)
+
+            self.preview_canvas.draw()
+
+    def get_xy_coords_mouse_release_event_plt(self, event) :
+
+        if self.rectangle_mode :
+
+            self.rectangle_x2_plt, self.rectangle_y2_plt = event.xdata, event.ydata
+
+
+            self.ax.patches = []
+            self.preview_canvas.draw()
+
+            self.mouse_pressed = False
+
+            if self.rectangle_x2_plt < self.rectangle_x1_plt :
+
+                self.rectangle_x1_plt, self.rectangle_x2_plt = self.rectangle_x2_plt, self.rectangle_x1_plt
+
+            if self.rectangle_y2_plt < self.rectangle_y1_plt :
+
+                self.rectangle_y1_plt, self.rectangle_y2_plt = self.rectangle_y2_plt, self.rectangle_y1_plt
+
+            self.rectangle_onselect((self.rectangle_x1_plt, self.rectangle_y1_plt), (self.rectangle_x2_plt, self.rectangle_y2_plt))
+
+
+    def image_processing_from_path(self, file_path) :
+                """ open text meta infos of tif files
+                    keywords: 
+                    - on_bad_lines: skips a line if it does not suit the excepted columns (is toleratable since
+                      important data is found in first column)
+                    - engine: python since C does not support the keyword on_bad_lines 
+                """
+                df = pd.read_csv(file_path, encoding = "ANSI", on_bad_lines = "skip", engine = "python")
+
+                """ get name of first column since all relevant informations are saved in that column 
+                """
+                column = df.columns.tolist()[0]
+
+
+
+                """ skip the file if the file Thumbs.db is selected 
+                """
+                if "Thumbs.db" not in file_path :
+
+                    self.ax.clear() 
+                    """ find the size of one pixel and resolution in metadata file
+                        find resolution of x and y axis 
+                    """
+                    pixel_size, unit = self.get_pixel_size_and_unit(df[column])
+
+                    resolution_x, resolution_y = self.get_resolution(df[column])
+
+                    """ gives back a feedback Error if a new and unknown resolution
+                        add new resolutions for debuuging: 
+
+                        ends the running code execution so that the User does notice that Error and can report it 
+                    """
+                    if resolution_x != "1024" or resolution_y != "768" :
+
+                        if resolution_x != "2048" or resolution_y != "1536" :
+
+                            print("\nUnknown Resolution REPORT The Following Values And Image To Pascal Reiß\npascal.reiss@uni-bayreuth.de")
+                            print(f"File name causing the Error: {file_path}, resolution x: {resolution_x}, resolution y: {resolution_y}")
+                            exit()
+
+
+                    """ get length treshold of scale bar in pixel for automatic scale bar insertion
+                        loop through each possible scale bar length from self.scale_bar_lengths
+                        calculate the scale bar length in pixel for each position
+                        if scale bar length in pixel >= the set scale bar length treshold (in pixel) break the loop and 
+                        set this length for the scale bar length 
+                    """
+                    scale_bar_in_pixel_treshold = self.get_scale_bar_in_pixel_for_resolution(resolution_x, resolution_y)
+
+                    for scale_bar_length in self.scale_bar_lengths :
+
+                        scale_bar_in_pixel = int(round(scale_bar_length / pixel_size))
+
+                        if scale_bar_in_pixel > scale_bar_in_pixel_treshold :
+
+                            break
+                    
+                    """ get unit of scale bar for scale bar label
+                        check existing unit and check if scale_bar_length >= 1000 and divide it by 1000 and set next unit hierachry 
+                    """
+                    
+                    if unit == "pm" :
+                        if scale_bar_length >= 1000 :
+                            unit = "nm"
+                            scale_bar_length = int(scale_bar_length / 1000)
+
+                    elif unit == "nm" :
+                        if scale_bar_length >= 1000 :
+                            unit = "µm"
+                            scale_bar_length = int(scale_bar_length / 1000)
+
+                    elif unit == "µm" :
+                        if scale_bar_length >= 1000 :
+                            unit = "mm"
+                            scale_bar_length = int(scale_bar_length / 1000)
+
+                    """ open the actual image from file_path and adding it a plt.figure 
+                    """
+
+                    image = plt.imread(file_path)
+
+                    self.ax.imshow(image) # add image to figure
+
+                    """ get font and scalbar properties for the determined resolution 
+                    """
+
+                    fontprops = self.get_font_properties_for_resolution(resolution_x, resolution_y)
+
+                    size_vertical = self.get_vertical_size_scale_bar_for_resolution(resolution_x, resolution_y)
+
+                    """ create a scale bar object
+                    """
+                    scalebar = AnchoredSizeBar(self.ax.transData,
+                                           scale_bar_in_pixel, 
+                                           f"{scale_bar_length} {unit}", self.scale_bar_position, 
+                                           pad=0.5,
+                                           color= self.scale_bar_color,
+                                           frameon= self.frameon,
+                                           size_vertical= size_vertical, 
+                                           fontproperties = fontprops,
+                                           sep = self.scale_bar_label_sep)  
+
+                    """ add scalebar to image
+                        set new ylim to cut off image data
+                        turn off axis and save processed image as tif file  
+                    """
+                    self.ax.add_artist(scalebar)
+
+                    ylim = self.get_cut_off_for_resolution(resolution_x, resolution_y)
+
+                    self.ax.set_ylim(ylim)
+
+                    self.ax.set_axis_off()
+
+                    self.preview_canvas.draw()
+
+
     def run_image_processing(self) :
         """ this function processes all images selected by the User
             if no files were selectedd an error feedback is given back
@@ -233,133 +452,18 @@ class SEM_Image_Tool :
 
             for n, file_path in enumerate(self.file_paths) :
 
-                """ open text meta infos of tif files
-                    keywords: 
-                    - on_bad_lines: skips a line if it does not suit the excepted columns (is toleratable since
-                      important data is found in first column)
-                    - engine: python since C does not support the keyword on_bad_lines 
-                """
-                df = pd.read_csv(file_path, encoding = "ANSI", on_bad_lines = "skip", engine = "python")
-
-                """ get name of first column since all relevant informations are saved in that column 
-                """
-                column = df.columns.tolist()[0]
-
                 """ get name of file/sample from file_path
                 """
                 file_name = os.path.basename(file_path)
                 sample_name = file_name.split(".tif")[0]
 
-                """ skip the file if the file Thumbs.db is selected 
-                """
-                if file_name == "Thumbs.db" :
-                    continue
-
-                print(file_name)
-
-                """ find the size of one pixel and resolution in metadata file
-                    find resolution of x and y axis 
-                """
-                pixel_size, unit = self.get_pixel_size_and_unit(df[column])
-
-                resolution_x, resolution_y = self.get_resolution(df[column])
-
-                """ gives back a feedback Error if a new and unknown resolution
-                    add new resolutions for debuuging: 
-
-                    ends the running code execution so that the User does notice that Error and can report it 
-                """
-                if resolution_x != "1024" or resolution_y != "768" :
-
-                    if resolution_x != "2048" or resolution_y != "1536" :
-
-                        print("\nUnknown Resolution REPORT The Following Values And Image To Pascal Reiß\npascal.reiss@uni-bayreuth.de")
-                        print(f"File name causing the Error: {file_path}, resolution x: {resolution_x}, resolution y: {resolution_y}")
-                        exit()
-
-
-                """ get length treshold of scale bar in pixel for automatic scale bar insertion
-                    loop through each possible scale bar length from self.scale_bar_lengths
-                    calculate the scale bar length in pixel for each position
-                    if scale bar length in pixel >= the set scale bar length treshold (in pixel) break the loop and 
-                    set this length for the scale bar length 
-                """
-                scale_bar_in_pixel_treshold = self.get_scale_bar_in_pixel_for_resolution(resolution_x, resolution_y)
-
-                for scale_bar_length in self.scale_bar_lengths :
-
-                    scale_bar_in_pixel = int(round(scale_bar_length / pixel_size))
-
-                    if scale_bar_in_pixel > scale_bar_in_pixel_treshold :
-
-                        break
-                
-                """ get unit of scale bar for scale bar label
-                    check existing unit and check if scale_bar_length >= 1000 and divide it by 1000 and set next unit hierachry 
-                """
-                
-                if unit == "pm" :
-                    if scale_bar_length >= 1000 :
-                        unit = "nm"
-                        scale_bar_length = int(scale_bar_length / 1000)
-
-                elif unit == "nm" :
-                    if scale_bar_length >= 1000 :
-                        unit = "µm"
-                        scale_bar_length = int(scale_bar_length / 1000)
-
-                elif unit == "µm" :
-                    if scale_bar_length >= 1000 :
-                        unit = "mm"
-                        scale_bar_length = int(scale_bar_length / 1000)
-
-                """ open the actual image from file_path and adding it a plt.figure 
-                """
-
-                image = plt.imread(file_path)
-
-                fig, ax = plt.subplots()
-
-                ax.imshow(image) # add image to figure
-
-                """ get font and scalbar properties for the determined resolution 
-                """
-
-                fontprops = self.get_font_properties_for_resolution(resolution_x, resolution_y)
-
-                size_vertical = self.get_vertical_size_scale_bar_for_resolution(resolution_x, resolution_y)
-
-                """ create a scale bar object
-                """
-                scalebar = AnchoredSizeBar(ax.transData,
-                                       scale_bar_in_pixel, 
-                                       f"{scale_bar_length} {unit}", self.scale_bar_position, 
-                                       pad=0.5,
-                                       color= self.scale_bar_color,
-                                       frameon= self.frameon,
-                                       size_vertical= size_vertical, 
-                                       fontproperties = fontprops,
-                                       sep = self.scale_bar_label_sep)  
-
-                """ add scalebar to image
-                    set new ylim to cut off image data
-                    turn off axis and save processed image as tif file  
-                """
-                ax.add_artist(scalebar)
-
-                ylim = self.get_cut_off_for_resolution(resolution_x, resolution_y)
-
-                ax.set_ylim(ylim)
-
-                ax.set_axis_off()
+                self.image_processing_from_path(file_path)
 
                 if not self.preview_mode :
-                    fig.savefig(f"{self.path_evaluation_folder}\{sample_name}{self.figure_type}", dpi = self.figure_dpi, bbox_inches='tight',pad_inches = 0)
+                    self.fig.savefig(f"{self.path_evaluation_folder}\{sample_name}{self.figure_type}", dpi = self.figure_dpi, bbox_inches='tight',pad_inches = 0)
 
-                if self.preview_mode :
-                    plt.show()
 
-                plt.close(fig) # close figure for improved ram usage
+
 
                 """ feedback for User how for the image processing has been completed
                     known issues:
@@ -388,20 +492,23 @@ class SEM_Image_Tool :
             if new GUI is created these values can be tuned 
         """
         self.program_frame = tk.Frame(master = master, relief = "groove", borderwidth = 2)
-        self.program_frame.grid(row = 1, column = 1, padx = 5, pady = 5)
+        self.program_frame.grid(row = 0, column = 1, padx = 5, pady = 5, rowspan = 2)
 
-        control_frame = tk.Frame(master = self.program_frame, relief = "groove", borderwidth = 2)
+        main_frame = tk.Frame(master = self.program_frame)
+        main_frame.grid(row = 0, column = 0, padx = 5, pady = 5)
+
+        control_frame = tk.Frame(master = main_frame, relief = "groove", borderwidth = 2)
         control_frame.grid(row = 0, column = 0, padx = 5, pady = 5)
 
         """ create tkinter.Button, which can access the function self.open_files for getting the selected files by the User
         """
-        open_files_button = tk.Button(master = control_frame, text = "Open Files", command = self.open_files)
+        open_files_button = tk.Button(master = control_frame, text = "Open Files", command = self.open_files, font = ("", 14))
         open_files_button.grid(row = 0, column = 0, padx = 5, pady = 5)
 
         """ create tkinter.Button, which can access the function self.run_image_processing
             for starting the image processing
         """
-        run_processing_button = tk.Button(master = control_frame, text = "Run Image Processing", comman = self.run_image_processing)
+        run_processing_button = tk.Button(master = control_frame, text = "Run Image Processing", comman = self.run_image_processing, font = ("", 14))
         run_processing_button.grid(row = 0, column = 2, padx = 5, pady = 5)
 
         """ create a tkinter.Label, which contains the feedback for the User if an execution failed or was successful 
@@ -410,9 +517,99 @@ class SEM_Image_Tool :
         self.feedback_label = tk.Label(master = control_frame, text = "Please Select Your Raw Images First.")
         self.feedback_label.grid(row = 0, column = 1, padx = 5, pady = 5)
 
+        """ create frame for displaying image in gui
+            needs to be an object of the TEM object, so that later functions can access it
+        """
+
+        self.preview_frame = tk.Frame(master = main_frame, relief = "groove", borderwidth = 2)
+        self.preview_frame.grid(row = 0, column = 1, padx = 5, pady = 5, rowspan = 2)
+
+        label = tk.Label(master = self.preview_frame, text = "Preview", font = ("Arial", 22))
+        label.grid(row = 0, column = 0, padx = 5, pady = 5)
+
+        self.preview_canvas = FigureCanvasTkAgg(self.fig, master = self.preview_frame)
+        self.preview_canvas.get_tk_widget().grid(row = 1, column = 0, padx = 5, pady = 5)
+
+        preview_buttons_frame = tk.Frame(master = self.preview_frame)
+        preview_buttons_frame.grid(row = 2, column = 0, padx = 5, pady = 5)
+
+        self.preview_canvas.mpl_connect("button_press_event", self.get_xy_coords_mouse_press_event_plt)
+        self.preview_canvas.mpl_connect("button_release_event", self.get_xy_coords_mouse_release_event_plt)
+        self.preview_canvas.mpl_connect("motion_notify_event", self.create_dynamic_rectangle_in_plt)
+
+
+        def goLeft_preview() :
+
+            if self.preview_index > 0 :
+                self.preview_index -= 1
+
+                file_path = self.file_paths[self.preview_index]
+                file_name = os.path.basename(file_path)
+
+                self.image_processing_from_path(file_path)
+                self.preview_file_label.config(text = f"Displayed File: {file_name}")
+
+        def goRight_preview() :
+
+            if self.preview_index < (len(self.file_paths) - 1) :
+                self.preview_index += 1
+
+                file_path = self.file_paths[self.preview_index]
+                file_name = os.path.basename(file_path)
+
+                self.image_processing_from_path(file_path)
+                self.preview_file_label.config(text = f"Displayed File: {file_name}")
+
+        goLeft_preview_button = tk.Button(master = preview_buttons_frame, text = "\u2190", # u2190 arrow pointing to the left
+                                          command = goLeft_preview, font = ("", 14)) 
+        goLeft_preview_button.grid(row = 0, column = 0, padx = 5, pady = 5)
+
+        goRight_previw_button = tk.Button(master = preview_buttons_frame, text = "\u2192", # u2190 arrow pointing to the right
+                                          command = goRight_preview, font = ("", 14)) 
+        goRight_previw_button.grid(row = 0, column = 1, padx = 5, pady = 5)
+
+
+        def set_rectangle_mode() :
+            """ controls setting of rectangle mode and therefore if image can be cropped or not
+            """
+            if self.rectangle_mode :
+                self.rectangle_mode = False
+                background = preview_buttons_frame.cget("bg") # get standard color of tkinter widgets
+                rectangle_control_button.config({"background" : background, "fg" : "black"})
+            else :
+                self.rectangle_mode = True
+                rectangle_control_button.config({"background" : "black", "fg" : "white"})
+
+
+        rectangle_control_button = tk.Button(master = preview_buttons_frame, text = "\u2702", # u2702 scissor
+                                             command = set_rectangle_mode, font = ("", 14))
+        rectangle_control_button.grid(row = 0, column = 2, padx = 5, pady = 5)
+
+        def save_current_preview() :
+            """ saves currently displayed image if files were selected by user len(TEM_Image_Tool.file_paths) > 0
+            """
+
+            if len(self.file_paths) > 0 :
+
+                file_path = self.file_paths[self.preview_index]
+                file_name = os.path.basename(file_path)
+                sample_name = file_name.split(".dm3")[0]
+
+                self.fig.savefig(f"{self.path_evaluation_folder}\{sample_name}_cut_out{self.figure_type}", dpi = self.figure_dpi, bbox_inches = "tight", pad_inches = 0)
+
+        save_current_preview_button = tk.Button(master = preview_buttons_frame, text = "\U0001F4BE", # U0001F4BE save icon
+                                                command = save_current_preview, font = ("", 14))
+        save_current_preview_button.grid(row = 0, column = 3, padx = 5, pady = 5)
+
+        self.preview_file_label = tk.Label(master = self.preview_frame, text = "Displayed File:", font = ("", 12))
+        self.preview_file_label.grid(row = 3, column = 0, padx = 5, pady = 5)
+
+
+
+
         """ create a tkinter.Frame, which contains all widget necassary for the User if changes to the figures shall be made (compared to the standard process) 
         """
-        change_properties_frame = tk.Frame(master = self.program_frame, relief = "groove", borderwidth = 2)
+        change_properties_frame = tk.Frame(master = main_frame, relief = "groove", borderwidth = 2)
 
         def enable_change_properties_frame() :
             setting = change_properties_variable.get()
@@ -422,7 +619,18 @@ class SEM_Image_Tool :
             elif setting == "0" :
                 change_properties_frame.grid_forget()
 
-        change_properties_variable = tk.StringVar()
+            """ main programm CS_Analysis_Tool.py does not remember the value for change_properties_variable tk.StringVar
+                after integration of the matplotlib canvas FigureCanvasTkAgg
+                fix:
+                - add recognition if script is imported or not
+                  if script is imported change value of variable (works but is not really elegant or intutive)
+            """
+            if __name__ != "__main__" :
+                dic = {"0" : "1", "1" : "0"}
+                change_properties_variable.set(dic[setting])
+
+
+        change_properties_variable = tk.StringVar(value = "0" if __name__ == "__main__" else "1")
         change_properties_checkbox = ttk.Checkbutton(control_frame, text = "change settings",
                                                         variable = change_properties_variable, command = enable_change_properties_frame)
         change_properties_checkbox.grid(row = 1, column = 0, padx = 5, pady = 5)
@@ -430,10 +638,13 @@ class SEM_Image_Tool :
         """ tkinter.Frame with all widgets necessary for changing general scale bar settings
         """
 
-        change_properties_scale_bar_frame = tk.Frame(master = change_properties_frame, relief = "groove", borderwidth = 2)
-        change_properties_scale_bar_frame.grid(row = 0, column = 0, padx = 5, pady = 5)
+        label = tk.Label(master = change_properties_frame, text = "Settings", font = ("Arial", 22))
+        label.grid(row = 0, column = 0, padx = 5, pady = 5)
 
-        label = tk.Label(master = change_properties_scale_bar_frame, text = "Scale Bar Settings")
+        change_properties_scale_bar_frame = tk.Frame(master = change_properties_frame, relief = "groove", borderwidth = 2)
+        change_properties_scale_bar_frame.grid(row = 1, column = 0, padx = 5, pady = 5)
+
+        label = tk.Label(master = change_properties_scale_bar_frame, text = "Scale Bar Settings", font = ("Arial", 16))
         label.grid(row = 0, columnspan = 3, padx = 5, pady = 5)
 
         fontsize_label = tk.Label(master = change_properties_scale_bar_frame, text = f"Fontsize Scale Bar Label:")
@@ -529,6 +740,27 @@ class SEM_Image_Tool :
         seperation_scale_bar_entry = tk.Entry(master = change_properties_scale_bar_frame)
         seperation_scale_bar_entry.grid(row = 5, column = 2, padx = 5, pady = 5)
 
+        def change_size_vertical() :
+            entry = scale_bar_size_vertical_entry.get()
+            scale_bar_size_vertical_entry.config({"background" : "white"})
+
+            if entry != "" :
+                try :
+                    entry = int(entry)
+                    self.scale_bar_size_vertical = entry
+                    scale_bar_size_vertical_label.config(text = self.scale_bar_size_vertical)
+                except ValueError :
+                    scale_bar_size_vertical_entry.config({"background" : "red"})
+
+        scale_bar_size_vertical_label = tk.Label(master = change_properties_scale_bar_frame, text = "Set Height of Scale Bar (in pixel):")
+        scale_bar_size_vertical_label.grid(row = 6, column = 0, padx = 5, pady = 5)
+
+        scale_bar_size_vertical_label = tk.Label(master = change_properties_scale_bar_frame, text = self.scale_bar_size_vertical)
+        scale_bar_size_vertical_label.grid(row = 6, column = 1, padx = 5, pady = 5)
+
+        scale_bar_size_vertical_entry = tk.Entry(master = change_properties_scale_bar_frame)
+        scale_bar_size_vertical_entry.grid(row = 6, column = 2, padx = 5, pady = 5)
+
         def change_seperation() :
             entry = seperation_scale_bar_entry.get() 
             seperation_scale_bar_entry.config({"background" : "white"})
@@ -542,13 +774,13 @@ class SEM_Image_Tool :
                     seperation_scale_bar_entry.config({"background" : "red"})
 
         scale_bar_treshold_label = tk.Label(master = change_properties_scale_bar_frame, text = f"Set Length Treshold Scale Bar (in pixel):")
-        scale_bar_treshold_label.grid(row = 6, column = 0, padx = 5, pady = 5)
+        scale_bar_treshold_label.grid(row = 7, column = 0, padx = 5, pady = 5)
 
         scale_bar_treshold_label = tk.Label(master = change_properties_scale_bar_frame, text = f"{self.scale_bar_treshold}")
-        scale_bar_treshold_label.grid(row = 6, column = 1, padx = 5, pady = 5)
+        scale_bar_treshold_label.grid(row = 7, column = 1, padx = 5, pady = 5)
 
         scale_bar_treshold_entry = tk.Entry(master = change_properties_scale_bar_frame)
-        scale_bar_treshold_entry.grid(row = 6, column = 2, padx = 5, pady = 5)
+        scale_bar_treshold_entry.grid(row = 7, column = 2, padx = 5, pady = 5)
 
         def change_treshold() :
             entry = scale_bar_treshold_entry.get()
@@ -574,15 +806,15 @@ class SEM_Image_Tool :
         scale_bar_frame_string_var.set("0")
         scale_bar_frame_checkbox = ttk.Checkbutton(master = change_properties_scale_bar_frame, text = "Frame For Scale Bar And Label", 
                                                     variable = scale_bar_frame_string_var)
-        scale_bar_frame_checkbox.grid(row = 7, column = 0, padx = 5, pady = 5)
+        scale_bar_frame_checkbox.grid(row = 8, column = 0, padx = 5, pady = 5)
 
         """ add properties of scale bar
         """
 
         change_properties_figure_frame = tk.Frame(master = change_properties_frame, relief = "groove", borderwidth = 2)
-        change_properties_figure_frame.grid(row = 0, column = 1, padx = 5, pady = 5)
+        change_properties_figure_frame.grid(row = 2, column = 0, padx = 5, pady = 5)
 
-        label = tk.Label(master = change_properties_figure_frame, text = "Figure Settings")
+        label = tk.Label(master = change_properties_figure_frame, text = "Figure Settings",font = ("Arial", 16))
         label.grid(row = 0, columnspan = 3, padx = 5, pady = 5)
 
         dpi_label = tk.Label(master = change_properties_figure_frame, text = f"DPI of Figure:")
@@ -633,27 +865,21 @@ class SEM_Image_Tool :
             change_color()
             change_position()
             change_seperation()
+            change_size_vertical()
             change_treshold()
             change_frame_scale_bar()
             change_figure_type()
 
-        settings_control_frame = tk.Frame(master = change_properties_frame, relief = "groove", borderwidth = 2)
-        settings_control_frame.grid(row = 0, column = 3, padx = 5, pady = 5)
-        apply_settings_button = tk.Button(master = settings_control_frame, text = "Apply Settings", command = change_properties)
-        apply_settings_button.grid(row = 0, column =0, padx = 5, pady = 5)
-
-        def get_preview() :
             if len(self.file_paths) > 0 :
-                file_paths = self.file_paths 
-                self.file_paths = (self.file_paths[0],)
-                self.preview_mode = True
-                self.run_image_processing()
-                self.preview_mode = False
-                self.file_paths = file_paths
-            else :
-                self.feedback_label.config(text = "Please Select At Least One File First.")
-        preview_button = tk.Button(master = settings_control_frame, text = "Preview Of Current Settings", command = get_preview)
-        preview_button.grid(row = 1, column = 0, padx = 5, pady = 5)
+                self.image_processing_from_path(self.file_paths[self.preview_index])
+
+        settings_control_frame = tk.Frame(master = change_properties_frame, relief = "groove", borderwidth = 2)
+        settings_control_frame.grid(row = 3, column = 0, padx = 5, pady = 5)
+        
+        apply_settings_button = tk.Button(master = settings_control_frame, text = "Apply Settings", command = change_properties, font = ("", 14))
+        apply_settings_button.grid(row = 0, column = 0, padx = 5, pady = 5)
+
+
 
         return self.program_frame
 
@@ -686,6 +912,19 @@ Version 1.0.7 and before
 Version 1.0.8 (28.03.2022)
 - added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
   in this case: ["TIFF Files", "*.tif"]
+
+Version 1.1.1 (02.04.2022)
+- added FigureCanvasTkAgg object from matplotlib.widgets as SEM_Image_Tool.preview_canvas: display preview picture in GUI
+  for some reason the change_properties_variable tk.StringVar did not remember its value when the script is imported
+  fix: change value of change_properties_variable by checking if sript is imported or not ---> fixed it
+- removed preview button and merged function into apply_settings_button 
+  changed settings for scale_bar are directly displayed in the FigureCanvasTkAgg object
+- reworked general GUI Layout
+- added goLeft_preview_button and goRight_preview_button to switch displayed image from selected files
+- added cropout function which can be activated by rectangle_control_button:
+  function displays a rectangle (matplotlib.patches.Rectangle) which shows selected area 
+  rectangle is drawn by holding MouseButton-1 (left) and after releasing the selected area is cropped out
+- added save_current_preview_button, which saves the currently displayed image locally
 """
 
 """
