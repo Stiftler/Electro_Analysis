@@ -4,6 +4,9 @@
 # basic python libary imports
 import os
 import tkinter as tk
+
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import datetime
 
 # imports of own programs
@@ -14,9 +17,13 @@ import electrodeposition as ed
 import infrared as ir
 import cyclovoltammetry as cv
 
-# imports of 
+# imports of image processing tool
 import sem_scale_bar as sem
 import tem_scale_bar as tem
+
+
+
+
 
 class User_Interface :
 
@@ -63,7 +70,7 @@ class User_Interface :
         """
 
         self.programs_frame = tk.Frame(master = self.root, relief = "groove", borderwidth = 2)
-        self.programs_frame.grid(column = 0, row = 1, padx = 5, pady = 5)
+        self.programs_frame.grid(column = 0, row = 2, padx = 5, pady = 5)
 
 
         """ create a tkinter.Label, which contains the currently selected Analysis Tool 
@@ -94,6 +101,9 @@ class User_Interface :
 
         run_program_button = tk.Button(self.programs_frame, text = "Select Method", command = self.select_programm)
         run_program_button.grid(column = 0, row = 2, padx = 5, pady = 5)
+
+
+
 
 
     def select_programm(self) :
@@ -156,7 +166,8 @@ if __name__ == "__main__" :
     gui_program_dictionary = get_gui_dictionary(program_list) 
 
     gui = User_Interface(gui_program_dictionary) 
-    
+
+        
     gui.root.mainloop()
 
 

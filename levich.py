@@ -1,5 +1,5 @@
 """ Levich Analysis Tool by Pascal Reiß
-    Version 1.0.2
+    Version 1.0.3
 """
 
 import tkinter as tk
@@ -797,7 +797,7 @@ class Levich_Analysis :
         self.reset_attributes()
 
         self.program_frame = tk.Frame(master = master, relief = "groove", borderwidth = 2)
-        self.program_frame.grid(row = 1, column = 1, padx = 5, pady = 5)
+        self.program_frame.grid(row = 0, column = 1, padx = 5, pady = 5, rowspan= 5)
         
         """ create a tkinter.Frame, which gives general control over the program by containing:
             - tkinter.Label as Feedback label for Error Messages
@@ -828,7 +828,11 @@ class Levich_Analysis :
 
             self.save_figures = settings[setting]
 
-        save_figures_variable = tk.StringVar()
+            if __name__ != "__main__" :
+                save_figures_variable.set(value = "0" if setting in ["", "1"] else "1")
+
+
+        save_figures_variable = tk.StringVar(value = "1" if __name__ != "__main__" else "0")
         save_figures_checkbox = ttk.Checkbutton(control_frame, text = "automatically save figures", \
             variable = save_figures_variable, command = change_figure_saving_settings)
         save_figures_checkbox.grid(row = 1, column = 0, padx = 5, pady = 5)
@@ -857,4 +861,7 @@ Version 1.0.2 (28.03.2022)
 
 - added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
   in this case: ["Text Files", "*.txt"]
+
+Version 1.0.3 (06.04.2022)
+- fixed bug were tkinter.StringVar values werent saved if the program was imported
 """

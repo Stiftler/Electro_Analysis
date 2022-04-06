@@ -520,7 +520,7 @@ class SEM_Image_Tool :
             if new GUI is created these values can be tuned 
         """
         self.program_frame = tk.Frame(master = master, relief = "groove", borderwidth = 2)
-        self.program_frame.grid(row = 0, column = 1, padx = 5, pady = 5, rowspan = 2)
+        self.program_frame.grid(row = 0, column = 1, padx = 5, pady = 5, rowspan = 10)
 
         main_frame = tk.Frame(master = self.program_frame)
         main_frame.grid(row = 0, column = 0, padx = 5, pady = 5)
@@ -1020,7 +1020,7 @@ Version 1.1.1 (02.04.2022)
   rectangle is drawn by holding MouseButton-1 (left) and after releasing the selected area is cropped out
 - added save_current_preview_button, which saves the currently displayed image locally
 
-Version 1.1.2 (04.04.2022)
+Version 1.1.2 (04.04.2022) CTRL is important
 - added undo/redo function to cropout function 
   can be accessed by undo_button and redo_button (also CTRL + Z for undo and CTRL + Y for redo)
 - added CTRl + S as shortcurt for saving current preview

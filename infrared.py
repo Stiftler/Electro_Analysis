@@ -1,5 +1,5 @@
 """ Infrared Analysis Tool by Pascal Reiß
-    Version 1.0.2
+    Version 1.0.3
 """
 
 import tkinter as tk
@@ -96,7 +96,7 @@ class Infrared_Analysis :
             the grid placement was chosen since it is one of the simplest and cleanest options for a clean tkinter based User Interface
         """
         self.program_frame = tk.Frame(master = master, relief = "groove", borderwidth = 2)
-        self.program_frame.grid(row = 1, column = 1, padx = 5, pady = 5)
+        self.program_frame.grid(row = 0, column = 1, padx = 5, pady = 5, rowspan= 5)
 
         """ create an additional tkinter.Frame acting as a control panel with access to the following functions via tkinter.Buttons
             - self.open_files
@@ -123,32 +123,42 @@ class Infrared_Analysis :
             default state: False 
         """
         def change_figure_saving_settings() :
-            settings = {"1" : True, "0" : False}
+            settings = {"1" : True, "0" : False, "" : True}
             setting = save_figures_variable.get()
+
 
             self.save_figures = settings[setting]
 
-        save_figures_variable = tk.StringVar()
+            if __name__ != "__main__" :
+                save_figures_variable.set(value = "0" if setting in ["", "1"] else "1")
+
+
+        save_figures_variable = tk.StringVar(value = "1" if __name__ != "__main__" else "0")
         save_figures_checkbox = ttk.Checkbutton(control_frame, text = "automatically save figures", \
             variable = save_figures_variable, command = change_figure_saving_settings)
         save_figures_checkbox.grid(row = 1, column = 0, padx = 5, pady = 5)
 
         def change_local_min_settings() :
-            settings = {"1" : True, "0" : False}
+            settings = {"1" : True, "0" : False, "" : True}
             setting = local_min_variable.get()
 
             self.local_min_setting = settings[setting]
-
             if settings[setting] :
                 local_min_frame.grid(row = 1, column = 0, padx = 5, pady = 5)
             else :
                 local_min_frame.grid_forget()
 
+            if __name__ != "__main__" :
+                local_min_variable.set(value = "0" if setting in ["", "1"] else "1")
+
+            
         """ create a tkinter.tkk.Checkbutton, which contains the state of the self.local_min_setting
             it controls if local minima positons shall be determined automatically
             default state: False 
         """
-        local_min_variable = tk.StringVar()
+        local_min_variable = tk.StringVar(value = "1" if __name__ != "__main__" else "0")
+
+        print(local_min_variable.get())
         local_min_checkbox = ttk.Checkbutton(control_frame, text = "automatic local minimas",
             variable = local_min_variable, command = change_local_min_settings)
         local_min_checkbox.grid(row = 2, column = 0, padx = 5, pady = 5)
@@ -356,9 +366,12 @@ class Infrared_Analysis :
 
 if __name__ == "__main__" :
 
+    root = tk.Tk()
+
     ir = Infrared_Analysis()
-    ir.open_files()
-    ir.run_evaluation()
+    ir.get_gui_frame(root)
+
+    root.mainloop()
 
 
 
@@ -371,4 +384,7 @@ update list:
 Version 1.0.2 (28.03.2022)
 - added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
   in this case: ["DPT Files", "*.dpt"]
+
+Version 1.0.3 (06.04.2022)
+- fixed bug were tkinter.StringVar values werent saved if the program was imported
 """

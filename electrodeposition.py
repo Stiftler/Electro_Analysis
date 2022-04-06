@@ -1,5 +1,5 @@
 """ Electrodeposition Analysis Tool by Pascal Reiß
-    Version 1.0.2
+    Version 1.0.3
 """
 
 import tkinter as tk
@@ -180,7 +180,7 @@ class Electrodeposition_Analysis :
             if new GUI is created these values can be tuned 
         """
         self.program_frame = tk.Frame(master = master, borderwidth = 2, relief = "groove")
-        self.program_frame.grid(row = 1, column = 1, padx = 5, pady = 5)
+        self.program_frame.grid(row = 0, column = 1, padx = 5, pady = 5, rowspan= 5)
 
         """ create buttonm which can access the self.open_files function in order to get the file_paths by User
         """
@@ -232,7 +232,10 @@ class Electrodeposition_Analysis :
             elif setting == "0" :
                 self.save_figures = False
 
-        save_figures_variable = tk.StringVar()
+            if __name__ != "__main__" :
+                save_figures_variable.set(value = "0" if setting in ["", "1"] else "1")
+
+        save_figures_variable = tk.StringVar(value = "1" if __name__ != "__main__" else "0")
         save_figures_checkbox = ttk.Checkbutton(self.program_frame, text = "automatically save figures",
             variable = save_figures_variable, command = change_figure_saving_settings)
         save_figures_checkbox.grid(column = 0, row = 3, padx = 5, pady = 5)
@@ -250,6 +253,10 @@ if __name__ == "__main__" :
 
     ed = Electrodeposition_Analysis()
     
+    root = tk.Tk()
+    ed.get_gui_frame(root)
+
+    root.mainloop()
     ed.open_files()
 
     ed.run_evaluation()
@@ -265,4 +272,7 @@ update list:
 Version 1.0.2 (28.03.2022)
 - added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
   in this case: ["Text Files", "*.txt"]
+
+Version 1.0.3 (06.04.2022)
+- fixed bug were tkinter.StringVar values werent saved if the program was imported
 """

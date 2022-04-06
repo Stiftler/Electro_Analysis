@@ -1,5 +1,5 @@
 """ Tafel Analysis Tool by Pascal Reiß
-    Version 1.0.2 
+    Version 1.0.3
 """
 
 import os
@@ -659,7 +659,7 @@ class Tafel_Analysis :
         self.reset_attributes()
 
         self.program_frame = tk.Frame(master = master, borderwidth = 2, relief = "groove")
-        self.program_frame.grid(row = 1, column = 2, pady = 5, padx = 5)
+        self.program_frame.grid(row = 0, column = 2, pady = 5, padx = 5, rowspan= 5)
 
         """ creation of a tkinter.Frame which gives general control over the program for User
             contains general functions/buttons required for the evaluation
@@ -855,15 +855,18 @@ class Tafel_Analysis :
         """
         def change_figure_saving_settings() :
             setting = save_figures_variable.get()
-            setting = int(setting)
             
-            if setting == 1 :
+            if setting == "1" :
                 self.save_figures = True
-            elif setting == 0 :
+            elif setting == "0" :
                 self.save_figures = False
 
+            if __name__ != "__main__" :
+                save_figures_variable.set("0" if setting == "1" else "1")
 
-        save_figures_variable = tk.StringVar()
+            print(self.save_figures)
+
+        save_figures_variable = tk.StringVar(value = "1" if __name__ != "__main__" else "0")
         save_figures_checkbox = ttk.Checkbutton(control_frame, text = "automatically save figures", \
             variable = save_figures_variable, command = change_figure_saving_settings, onvalue = True, offvalue = False)
         save_figures_checkbox.grid(row = 2, column = 0, padx = 5, pady = 5)
@@ -897,4 +900,7 @@ update list:
 Version 1.0.2 (28.03.2022)
 - added filetypes argument for tkinter.filedialog.askopenfilenames function to show only necessary files for the program
   in this case: ["Text Files", "*.txt"]
+
+Version 1.0.3 (06.04.2022)
+- fixed bug were tkinter.StringVar values werent saved if the program was imported
 """
