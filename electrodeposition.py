@@ -150,7 +150,7 @@ class Electrodeposition_Analysis :
         """
         self.file_paths = () # just in case old files were selected previously, those are overwritten and forgotten
         if self.feedback_label != None :
-            self.feedback_label.config(text = "Please select your raw data files.")
+            self.feedback_label.config(text = "Please Select Your Raw Data Files.")
 
         root = tk.Tk()
         file_paths = filedialog.askopenfilenames(parent = root, filetypes=[("Text files","*.txt")])  
@@ -162,10 +162,10 @@ class Electrodeposition_Analysis :
             since the evalution function is only triggered if len(self.file_paths) > 0 no further safty mechanism is required
         """
         if len(self.file_paths) > 0 and self.feedback_label != None :
-            self.feedback_label.config(text = "Evaluation can be started now.")
+            self.feedback_label.config(text = "Evaluation Can Be Started Now.")
 
         elif len(self.file_paths) == 0 and self.feedback_label != None :
-            self.feedback_label.config(text = "Please select your raw data files.")
+            self.feedback_label.config(text = "Please Select Your Raw Data Files.")
 
 
     def get_gui_frame(self, master) :
@@ -212,7 +212,7 @@ class Electrodeposition_Analysis :
             (as a attribute of the Electrodepositon_Analysis class itself) 
         """
 
-        self.feedback_label = tk.Label(master = self.program_frame, text = "Please select your raw data files.", font = "Arial")
+        self.feedback_label = tk.Label(master = self.program_frame, text = "Please Select Your Raw Data Files.", font = "Arial")
         self.feedback_label.grid(row = 0, column = 1, pady = 5, padx = 5)
 
         """ create run_evaluation_button, which contains the function self.run_evalution and starts the evalution
