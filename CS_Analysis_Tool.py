@@ -19,6 +19,7 @@ import cyclovoltammetry as cv
 
 # imports of image processing tool
 import sem_scale_bar as sem
+import esem_scale_bar as esem
 import tem_scale_bar as tem
 
 
@@ -158,6 +159,7 @@ if __name__ == "__main__" :
                     cv.Cyclovoltammetry_Analysis(), # adds Cyclovoltammetry Analysis
                     ir.Infrared_Analysis(), # adds Infrared Analysis
                     sem.SEM_Image_Tool(), # adds SEM Image Scale Bar Tool
+                    esem.ESEM_Image_Tool(), # adds ESEM Image Scale Bar Tool
                     tem.TEM_Image_Tool() # adds TEM Image Scale Bar Tool
                     ]
 
